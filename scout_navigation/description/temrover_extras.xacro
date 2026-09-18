@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!-- Everything bolted onto the Scout: navigation sensors and, optionally, the towed carts. -->
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <xacro:arg name="carts" default="true" />
+
+    <xacro:include filename="$(find scout_navigation)/description/temrover_sensors.xacro" />
+
+    <xacro:if value="$(arg carts)">
+        <xacro:include filename="$(find scout_navigation)/description/temrover_carts.xacro" />
+    </xacro:if>
+
+</robot>

@@ -1,0 +1,4 @@
+/**:
+  ros__parameters:
+    # Tx and Rx carts in tow: the Rx cart's rear wheels sit 7.76 m behind base_link (CAD), body beyond
+    towed_length: 8.5

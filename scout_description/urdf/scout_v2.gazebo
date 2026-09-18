@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<!-- Replaced the upstream Gazebo Classic block with Gazebo Fortress systems (TEMRover). -->
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <xacro:macro name="wheel_friction" params="wheel_prefix">
+        <gazebo reference="${wheel_prefix}_wheel_link">
+            <!-- fdir1 is read in the wheel frame, so mu1 follows the rolling direction -->
+            <fdir1>1 0 0</fdir1>
+            <mu1>0.9</mu1>
+            <mu2>0.7</mu2>
+            <kp>1e7</kp>
+            <kd>1.0</kd>
+        </gazebo>
+    </xacro:macro>
+
+    <xacro:wheel_friction wheel_prefix="front_left" />
+    <xacro:wheel_friction wheel_prefix="front_right" />
+    <xacro:wheel_friction wheel_prefix="rear_left" />
+    <xacro:wheel_friction wheel_prefix="rear_right" />
+
+    <gazebo>
+        <plugin filename="ignition-gazebo-diff-drive-system"
+                name="ignition::gazebo::systems::DiffDrive">
+            <left_joint>front_left_wheel</left_joint>
+            <left_joint>rear_left_wheel</left_joint>
+            <right_joint>front_right_wheel</right_joint>
+            <right_joint>rear_right_wheel</right_joint>
+
+            <wheel_separation>0.58306</wheel_separation>
+            <wheel_radius>0.16459</wheel_radius>
+
+            <max_linear_velocity>1.5</max_linear_velocity>
+            <max_angular_velocity>1.5</max_angular_velocity>
+            <!-- 0.2 m minimum braking distance from 6 km/h gives 6.9 m/s^2 -->
+            <max_linear_acceleration>6.9</max_linear_acceleration>
+            <max_angular_acceleration>3.0</max_angular_acceleration>
+
+            <topic>cmd_vel</topic>
+            <odom_topic>odom</odom_topic>
+            <frame_id>odom</frame_id>
+            <child_frame_id>base_link</child_frame_id>
+            <odom_publish_frequency>50</odom_publish_frequency>
+        </plugin>
+
+        <plugin filename="ignition-gazebo-joint-state-publisher-system"
+                name="ignition::gazebo::systems::JointStatePublisher">
+        </plugin>
+    </gazebo>
+
+</robot>

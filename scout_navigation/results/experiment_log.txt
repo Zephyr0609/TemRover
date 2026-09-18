@@ -1,0 +1,6 @@
+stanley       RTK             rms=0.018 p95=0.031 max=0.105 yaw_rms=0.246 lat_acc_rms=0.260 duration=460s
+stanley       SBAS            rms=0.283 p95=0.495 max=0.764 yaw_rms=0.258 lat_acc_rms=0.295 duration=466s
+stanley       M9N standalone  rms=0.683 p95=1.194 max=1.702 yaw_rms=0.352 lat_acc_rms=0.433 duration=468s
+pure pursuit  RTK             rms=0.018 p95=0.032 max=0.101 yaw_rms=0.202 lat_acc_rms=0.216 duration=457s
+pure pursuit  SBAS            rms=0.277 p95=0.473 max=0.719 yaw_rms=0.288 lat_acc_rms=0.340 duration=460s
+pure pursuit  M9N standalone  rms=0.684 p95=1.128 max=1.454 yaw_rms=0.211 lat_acc_rms=0.239 duration=458s

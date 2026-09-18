@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <model name="pole_obstacle">
+    <static>true</static>
+    <link name="obstacle_link">
+      <collision name="collision">
+        <geometry><cylinder><radius>0.05</radius><length>1.5</length></cylinder></geometry>
+      </collision>
+      <visual name="visual">
+        <geometry><cylinder><radius>0.05</radius><length>1.5</length></cylinder></geometry>
+        <material>
+          <ambient>0.8 0.6 0.1 1</ambient>
+          <diffuse>0.95 0.75 0.15 1</diffuse>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

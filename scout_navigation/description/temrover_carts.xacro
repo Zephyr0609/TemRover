@@ -1,0 +1,139 @@
+<?xml version="1.0"?>
+<!-- Towed Tx and Rx carts. Geometry and masses from the Phase-1 CAD mass properties
+     (Run_Simscape_MonteCarlo_ISO_Terrains_Only_RandomRollings.m). -->
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <xacro:property name="cart_wheel_radius" value="0.13" />
+    <xacro:property name="cart_wheel_width" value="0.096" />
+    <xacro:property name="yaw_damping" value="0.2" />
+    <xacro:property name="pitch_damping" value="0.5" />
+    <xacro:property name="yaw_limit" value="1.2" />
+    <xacro:property name="pitch_limit" value="0.5" />
+
+    <xacro:macro name="cart_wheel" params="cart name *origin">
+        <link name="${cart}_${name}_wheel_link">
+            <inertial>
+                <mass value="1.0" />
+                <inertia ixx="0.005" ixy="0" ixz="0" iyy="0.008" iyz="0" izz="0.005" />
+            </inertial>
+            <visual>
+                <origin rpy="${pi/2} 0 0" />
+                <geometry>
+                    <cylinder length="${cart_wheel_width}" radius="${cart_wheel_radius}" />
+                </geometry>
+            </visual>
+            <collision>
+                <origin rpy="${pi/2} 0 0" />
+                <geometry>
+                    <cylinder length="${cart_wheel_width}" radius="${cart_wheel_radius}" />
+                </geometry>
+            </collision>
+        </link>
+        <joint name="${cart}_${name}_wheel" type="continuous">
+            <parent link="${cart}_link" />
+            <child link="${cart}_${name}_wheel_link" />
+            <xacro:insert_block name="origin" />
+            <axis xyz="0 1 0" />
+        </joint>
+        <gazebo reference="${cart}_${name}_wheel_link">
+            <mu1>0.8</mu1>
+            <mu2>0.6</mu2>
+            <material>Gazebo/DarkGrey</material>
+        </gazebo>
+    </xacro:macro>
+
+    <!-- Yaw then pitch, matching the four hitch degrees of freedom of the Simscape model -->
+    <xacro:macro name="cart_body" params="cart parent mass length width height
+                                          tow_x tow_z rod front_x front_z">
+        <link name="${cart}_rod_link">
+            <inertial>
+                <origin xyz="${-rod/2} 0 0" />
+                <mass value="4.0" />
+                <inertia ixx="0.01" ixy="0" ixz="0" iyy="${4.0*rod*rod/12}" iyz="0"
+                         izz="${4.0*rod*rod/12}" />
+            </inertial>
+            <visual>
+                <origin xyz="${-rod/2} 0 0" rpy="0 ${pi/2} 0" />
+                <geometry>
+                    <cylinder length="${rod}" radius="0.02" />
+                </geometry>
+            </visual>
+        </link>
+        <joint name="${cart}_hitch_yaw" type="revolute">
+            <parent link="${parent}" />
+            <child link="${cart}_rod_link" />
+            <origin xyz="${tow_x} 0 ${tow_z}" />
+            <axis xyz="0 0 1" />
+            <limit lower="${-yaw_limit}" upper="${yaw_limit}" effort="500" velocity="10" />
+            <dynamics damping="${yaw_damping}" />
+        </joint>
+
+        <link name="${cart}_link">
+            <inertial>
+                <mass value="${mass}" />
+                <inertia ixx="${mass*(width*width+height*height)/12}" ixy="0" ixz="0"
+                         iyy="${mass*(length*length+height*height)/12}" iyz="0"
+                         izz="${mass*(length*length+width*width)/12}" />
+            </inertial>
+            <visual>
+                <geometry>
+                    <box size="${length} ${width} ${height}" />
+                </geometry>
+            </visual>
+            <collision>
+                <geometry>
+                    <box size="${length} ${width} ${height}" />
+                </geometry>
+            </collision>
+        </link>
+        <gazebo reference="${cart}_link">
+            <visual>
+                <material>
+                    <ambient>0.75 0.72 0.62 1</ambient>
+                    <diffuse>0.9 0.87 0.75 1</diffuse>
+                </material>
+            </visual>
+        </gazebo>
+
+        <joint name="${cart}_hitch_pitch" type="revolute">
+            <parent link="${cart}_rod_link" />
+            <child link="${cart}_link" />
+            <origin xyz="${-rod-front_x} 0 ${front_z}" />
+            <axis xyz="0 1 0" />
+            <limit lower="${-pitch_limit}" upper="${pitch_limit}" effort="500" velocity="10" />
+            <dynamics damping="${pitch_damping}" />
+        </joint>
+    </xacro:macro>
+
+    <!-- Tx sled: 30 kg, four wheels, 0.8 m wheelbase -->
+    <xacro:cart_body cart="tx_cart" parent="base_link" mass="30.0"
+                     length="1.0" width="0.6" height="0.3"
+                     tow_x="-0.47" tow_z="-0.05" rod="2.0" front_x="0.32" front_z="0.125" />
+    <xacro:cart_wheel cart="tx_cart" name="front_left">
+        <origin xyz="0.100 0.300 -0.215" />
+    </xacro:cart_wheel>
+    <xacro:cart_wheel cart="tx_cart" name="front_right">
+        <origin xyz="0.100 -0.300 -0.215" />
+    </xacro:cart_wheel>
+    <xacro:cart_wheel cart="tx_cart" name="rear_left">
+        <origin xyz="-0.700 0.300 -0.215" />
+    </xacro:cart_wheel>
+    <xacro:cart_wheel cart="tx_cart" name="rear_right">
+        <origin xyz="-0.700 -0.300 -0.215" />
+    </xacro:cart_wheel>
+
+    <!-- Rx sled: 15 kg, single centre wheel in front of a rear pair -->
+    <xacro:cart_body cart="rx_cart" parent="tx_cart_link" mass="15.0"
+                     length="1.0" width="0.6" height="0.3"
+                     tow_x="-0.923" tow_z="-0.131" rod="3.3" front_x="0.58" front_z="0.066" />
+    <xacro:cart_wheel cart="rx_cart" name="front">
+        <origin xyz="0.330 0.0 -0.019" />
+    </xacro:cart_wheel>
+    <xacro:cart_wheel cart="rx_cart" name="rear_left">
+        <origin xyz="-0.170 0.250 -0.019" />
+    </xacro:cart_wheel>
+    <xacro:cart_wheel cart="rx_cart" name="rear_right">
+        <origin xyz="-0.170 -0.250 -0.019" />
+    </xacro:cart_wheel>
+
+</robot>

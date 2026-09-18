@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="570" viewBox="0 0 1160 570" font-family="Helvetica, Arial, sans-serif" font-size="14">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+  <rect width="1160" height="570" fill="#ffffff"/>
+
+  <!-- Rover -->
+  <rect x="30" y="30" width="640" height="500" rx="14" fill="#f3f4f6" stroke="#9ca3af"/>
+  <text x="50" y="58" font-size="17" font-weight="bold" fill="#111827">On the rover</text>
+
+  <!-- Sensors column -->
+  <text x="50" y="92" font-size="12" fill="#6b7280" letter-spacing="1">SENSORS</text>
+  <g stroke="#374151" fill="#ffffff">
+    <rect x="50" y="102" width="170" height="52" rx="8"/>
+    <rect x="50" y="166" width="170" height="52" rx="8"/>
+    <rect x="50" y="230" width="170" height="52" rx="8"/>
+    <rect x="50" y="294" width="170" height="52" rx="8"/>
+  </g>
+  <g fill="#111827">
+    <text x="62" y="123" font-weight="bold">ZED-F9P GNSS</text><text x="62" y="143" fill="#6b7280" font-size="12">RTK fix, serial</text>
+    <text x="62" y="187" font-weight="bold">ICM-20948 IMU</text><text x="62" y="207" fill="#6b7280" font-size="12">yaw rate, attitude</text>
+    <text x="62" y="251" font-weight="bold">RPLIDAR S2L</text><text x="62" y="271" fill="#6b7280" font-size="12">2D scan, 10 Hz</text>
+    <text x="62" y="315" font-weight="bold">USB camera</text><text x="62" y="335" fill="#6b7280" font-size="12">640×360, 15 Hz</text>
+  </g>
+
+  <!-- Computer -->
+  <rect x="270" y="102" width="380" height="330" rx="10" fill="#ffffff" stroke="#374151"/>
+  <text x="286" y="126" font-weight="bold" fill="#111827">Rover computer · ROS 2 Humble</text>
+  <g fill="#eef2ff" stroke="#4f46e5">
+    <rect x="286" y="140" width="160" height="40" rx="6"/>
+    <rect x="286" y="190" width="160" height="40" rx="6"/>
+    <rect x="286" y="240" width="160" height="40" rx="6"/>
+  </g>
+  <g fill="#1e1b4b" font-size="13">
+    <text x="296" y="164">survey_navigator</text>
+    <text x="296" y="214">scout_can_bridge</text>
+    <text x="296" y="264">sensor drivers</text>
+  </g>
+  <g fill="#ecfdf5" stroke="#059669">
+    <rect x="472" y="140" width="160" height="40" rx="6"/>
+    <rect x="472" y="190" width="160" height="40" rx="6"/>
+    <rect x="472" y="240" width="160" height="40" rx="6"/>
+  </g>
+  <g fill="#064e3b" font-size="13">
+    <text x="482" y="164">rosbridge :9090</text>
+    <text x="482" y="214">web_video_server :8080</text>
+    <text x="482" y="264">page server :8000</text>
+  </g>
+  <text x="286" y="310" fill="#6b7280" font-size="12">hardware.launch.py → navigator + CAN bridge (+ drivers)</text>
+  <text x="286" y="330" fill="#6b7280" font-size="12">dashboard.launch.py usb_camera:=true → the three services</text>
+  <text x="286" y="360" fill="#6b7280" font-size="12">Topics in: gps/fix, gps/fix_velocity, imu/data, scan, front_camera/image</text>
+  <text x="286" y="380" fill="#6b7280" font-size="12">Topics out: cmd_vel, estimated_pose, survey_path, driven_route, survey_status</text>
+  <text x="286" y="412" fill="#b45309" font-size="12">start_mode: idle — the operator starts from the page</text>
+
+  <!-- Sensor arrows -->
+  <g stroke="#374151" stroke-width="1.5" marker-end="url(#arrow)" fill="none">
+    <path d="M220,128 L286,150"/>
+    <path d="M220,192 L286,200"/>
+    <path d="M220,256 L286,250"/>
+    <path d="M220,320 L286,262"/>
+  </g>
+
+  <!-- Chassis -->
+  <rect x="270" y="452" width="380" height="58" rx="8" fill="#ffffff" stroke="#374151"/>
+  <text x="286" y="476" font-weight="bold" fill="#111827">Scout 2.0 chassis</text>
+  <text x="286" y="496" fill="#6b7280" font-size="12">CAN 0x111 motion, 0x221 feedback · RC transmitter e-stop stays in hand</text>
+  <g stroke="#374151" stroke-width="1.5" marker-end="url(#arrow)" marker-start="url(#arrow)" fill="none">
+    <path d="M366,432 L366,452"/>
+  </g>
+  <text x="376" y="446" fill="#6b7280" font-size="11">CAN (CANable), 50 Hz, 0.5 s timeout</text>
+
+  <!-- WiFi link -->
+  <g stroke="#2563eb" stroke-width="2" stroke-dasharray="7,5" fill="none" marker-end="url(#arrow)" marker-start="url(#arrow)">
+    <path d="M650,210 L860,210"/>
+  </g>
+  <text x="755" y="196" text-anchor="middle" fill="#2563eb" font-size="12" font-weight="bold">Mobile hotspot (phone)</text>
+  <text x="755" y="232" text-anchor="middle" fill="#6b7280" font-size="11">rover and laptop on the same hotspot</text>
+  <text x="745" y="248" text-anchor="middle" fill="#6b7280" font-size="10">page ~2 Mbit/s, phone stays near the rover</text>
+
+  <!-- Operator -->
+  <rect x="860" y="120" width="270" height="180" rx="14" fill="#f3f4f6" stroke="#9ca3af"/>
+  <text x="880" y="148" font-size="17" font-weight="bold" fill="#111827">Operator</text>
+  <rect x="880" y="164" width="230" height="56" rx="8" fill="#ffffff" stroke="#374151"/>
+  <text x="892" y="186" font-weight="bold" fill="#111827">Laptop or phone browser</text>
+  <text x="892" y="206" fill="#6b7280" font-size="12">http://&lt;rover-ip&gt;:8000</text>
+  <text x="880" y="248" fill="#374151" font-size="12">Sees: lines, route, obstacles, camera,</text>
+  <text x="880" y="266" fill="#374151" font-size="12">line / speed / cross-track / heading</text>
+  <text x="880" y="284" fill="#374151" font-size="12">Does: start / pause, emergency stop</text>
+
+  <!-- RTK -->
+  <rect x="860" y="360" width="270" height="110" rx="14" fill="#fffbeb" stroke="#d97706"/>
+  <text x="880" y="388" font-size="15" font-weight="bold" fill="#92400e">RTK corrections</text>
+  <text x="880" y="412" fill="#78350f" font-size="12">NTRIP stream from the internet,</text>
+  <text x="880" y="430" fill="#78350f" font-size="12">reaches the GNSS through the same hotspot.</text>
+  <text x="880" y="452" fill="#78350f" font-size="12">No base station in the field.</text>
+  <g stroke="#d97706" stroke-width="1.5" stroke-dasharray="4,4" fill="none" marker-end="url(#arrow)">
+    <path d="M995,470 L995,552 L40,552 L40,128 L50,128"/>
+  </g>
+</svg>

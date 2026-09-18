@@ -1,0 +1,15 @@
+/**:
+  ros__parameters:
+    # South Lawn grid surveyed on GDA2020 / MGA55 (resource/SOUTHLAWN2020.txt), start corner GS0013
+    origin_latitude: -37.79873428
+    origin_longitude: 144.96013018
+    # Lines follow MGA grid east, which is 1.250 deg clockwise of true east at this longitude
+    grid_bearing: -0.02182
+    grid_width: 30.0
+    grid_length: 30.0
+    line_spacing: 5.0
+    # The mission is laid out on the surveyed corners, not on wherever the rover happens to start
+    anchor_to_origin: true
+
+    # Speed used in the manual test run on site
+    cruise_speed: 0.95

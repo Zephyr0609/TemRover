@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TEMRover Survey</title>
+<style>
+  :root {
+    --bg: #f3f4f6; --card: #ffffff; --border: #e3e6ea; --text: #1f2937; --muted: #6b7280;
+    --blue: #1e63d6; --red: #d93025; --green: #188038; --amber: #e37400;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--text); display: grid; grid-template-rows: 56px 1fr;
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  header { display: flex; align-items: center; gap: 10px; padding: 0 20px; }
+  header h1 { font-size: 16px; font-weight: 600; margin: 0 auto 0 0; letter-spacing: -.01em; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted);
+    padding: 4px 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); }
+  .pill i { width: 8px; height: 8px; border-radius: 50%; background: #c9ccd1; }
+  .pill.on i { background: var(--green); }
+  #clock { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; margin-left: 6px; }
+  main { display: grid; grid-template-columns: 1fr 340px; gap: 14px; padding: 0 20px 20px; min-height: 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 1px 2px rgba(16, 24, 40, .04); min-height: 0; }
+  #map { position: relative; overflow: hidden; }
+  #map .k { position: absolute; top: 12px; left: 16px; }
+  canvas { display: block; width: 100%; height: 100%; }
+  aside { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  #camera img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; border-radius: 12px; background: #111; }
+  .status { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 16px; }
+  .state { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 600; }
+  .state i { width: 10px; height: 10px; border-radius: 50%; background: #c9ccd1; flex: none; }
+  .state small { font-weight: 400; color: var(--muted); font-size: 13px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+  .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .v { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.01em; line-height: 1.2; }
+  .v span { font-size: 13px; color: var(--muted); font-weight: 500; margin-left: 3px; }
+  .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  button { font: inherit; font-weight: 600; border: 0; border-radius: 10px; padding: 13px; cursor: pointer; color: #fff; }
+  #start { background: var(--blue); }
+  #start.pause { background: #e8ebef; color: var(--text); }
+  #stop { background: var(--red); }
+  #stop.resume { background: var(--green); }
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; grid-template-rows: 60vh auto; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>TEMRover Survey</h1>
+  <span class="pill" id="link"><i></i>link</span>
+  <span class="pill" id="fix"><i></i>GNSS</span>
+  <span id="clock"></span>
+</header>
+<main>
+  <div class="card" id="map">
+    <span class="k">Survey lines and driven route · scroll to zoom, drag to pan, double-click to reset</span>
+    <canvas id="mapCanvas"></canvas>
+  </div>
+  <aside>
+    <div class="card" id="camera"><img id="video" alt=""></div>
+    <div class="card status">
+      <div class="state"><i id="stateDot"></i><span id="stateText">No link</span><small id="modeText"></small></div>
+      <div class="grid">
+        <div><div class="k">Line</div><div class="v" id="line">—</div></div>
+        <div><div class="k">Speed</div><div class="v" id="speed">—<span>m/s</span></div></div>
+        <div><div class="k">Cross-track</div><div class="v" id="cross">—<span>m</span></div></div>
+        <div><div class="k">Heading</div><div class="v" id="heading">—<span>°</span></div></div>
+      </div>
+      <div class="buttons">
+        <button id="start">Start survey</button>
+        <button id="stop">Emergency stop</button>
+      </div>
+    </div>
+  </aside>
+</main>
+<script src="roslib.min.js"></script>
+<script>
+const host = location.hostname || 'localhost';
+const ros = new ROSLIB.Ros({ url: `ws://${host}:9090` });
+document.getElementById('video').src = `http://${host}:8080/stream?topic=/front_camera/image&type=mjpeg&quality=60`;
+
+const OBSTACLE_CELL = 0.1;
+const LIDAR_OFFSET = 0.34;
+// Scout 2.0 (scout_v2.xacro) and the Tx/Rx carts (temrover_carts.xacro), metres in base_link frame
+const ROVER = { body: [0.925, 0.38], wheel: [0.329, 0.117], wheels: [[0.249, 0.292], [0.249, -0.292], [-0.249, 0.292], [-0.249, -0.292]],
+                lidar: 0.34, antenna: -0.30, tow: -0.47 };
+// reach: tow point to cart centre (rod + hitch); axle: tow point to the wheels' effective axle
+const CARTS = [
+  { reach: 2.32, axle: 2.62, hitch: 0.32, tow: -0.923, wheel: [0.26, 0.096], wheels: [[0.1, 0.3], [0.1, -0.3], [-0.7, 0.3], [-0.7, -0.3]] },
+  { reach: 3.88, axle: 3.88, hitch: 0.58, wheel: [0.26, 0.096], wheels: [[0.33, 0], [-0.17, 0.25], [-0.17, -0.25]] },
+];
+const CART_BODY = [1.0, 0.6];
+const view = { zoom: 1, cx: 0, cy: 0 };
+const state = { lines: [], route: [], pose: null, scan: [], obstacles: new Map(), status: null };
+
+const topic = (name, type, throttle) => new ROSLIB.Topic({ ros, name, messageType: type, throttle_rate: throttle || 0 });
+const modeTopic = topic('/survey_mode', 'std_msgs/String');
+const stopTopic = topic('/emergency_stop', 'std_msgs/Bool');
+const setPill = (id, on) => document.getElementById(id).classList.toggle('on', on);
+ros.on('connection', () => setPill('link', true));
+ros.on('close', () => setPill('link', false));
+ros.on('error', () => setPill('link', false));
+
+topic('/survey_path', 'nav_msgs/Path').subscribe(m => {
+  // A new set of lines means a new run: what was seen before belongs to the old heading estimate
+  state.obstacles.clear();
+  const points = m.poses.map(p => [p.pose.position.x, p.pose.position.y]);
+  const pairs = [];
+  for (let i = 0; i + 1 < points.length; i += 2) pairs.push([points[i], points[i + 1]]);
+  const shortest = Math.min(...pairs.map(([a, b]) => Math.hypot(b[0] - a[0], b[1] - a[1])));
+  // Drive steps alternate survey line and connector; the connector is one line spacing long
+  state.lines = pairs.map(([a, b]) => ({ a, b, connector: Math.hypot(b[0] - a[0], b[1] - a[1]) < 2 * shortest }));
+});
+topic('/driven_route', 'nav_msgs/Path').subscribe(m => {
+  state.route = m.poses.map(p => [p.pose.position.x, p.pose.position.y]);
+});
+topic('/estimated_pose', 'geometry_msgs/PoseStamped', 50).subscribe(m => {
+  const q = m.pose.orientation;
+  state.pose = { x: m.pose.position.x, y: m.pose.position.y, yaw: 2 * Math.atan2(q.z, q.w) };
+});
+topic('/scan', 'sensor_msgs/LaserScan', 200).subscribe(m => {
+  state.scan = [];
+  if (!state.pose) return;
+  const c = Math.cos(state.pose.yaw), s = Math.sin(state.pose.yaw);
+  for (let i = 0; i < m.ranges.length; i += 3) {
+    const r = m.ranges[i];
+    if (!(r > m.range_min && r < 12.0)) continue;
+    const a = m.angle_min + i * m.angle_increment;
+    const lx = LIDAR_OFFSET + r * Math.cos(a), ly = r * Math.sin(a);
+    state.scan.push([state.pose.x + c * lx - s * ly, state.pose.y + s * lx + c * ly]);
+  }
+});
+topic('/obstacle_points', 'sensor_msgs/PointCloud2', 200).subscribe(m => {
+  const bytes = Uint8Array.from(atob(m.data), ch => ch.charCodeAt(0));
+  const view = new DataView(bytes.buffer);
+  for (let offset = 0; offset + 8 <= bytes.length; offset += m.point_step) {
+    const x = view.getFloat32(offset, true), y = view.getFloat32(offset + 4, true);
+    state.obstacles.set(`${Math.round(x / OBSTACLE_CELL)},${Math.round(y / OBSTACLE_CELL)}`, [x, y]);
+  }
+});
+topic('/gps/fix', 'sensor_msgs/NavSatFix', 1000).subscribe(m => setPill('fix', m.status.status >= 0));
+topic('/survey_status', 'std_msgs/String', 200).subscribe(m => { state.status = JSON.parse(m.data); renderStatus(); });
+
+document.getElementById('start').onclick = () => {
+  const running = state.status && state.status.mode === 'autonomous';
+  modeTopic.publish(new ROSLIB.Message({ data: running ? 'idle' : 'autonomous' }));
+};
+document.getElementById('stop').onclick = () => {
+  stopTopic.publish(new ROSLIB.Message({ data: !(state.status && state.status.emergency_stop) }));
+};
+
+const STATE_COLOUR = { SURVEYING: 'var(--green)', TURNING: 'var(--green)', ALIGNING: 'var(--blue)', COMPLETE: 'var(--blue)',
+                       HOLDING: 'var(--amber)', WAITING_FOR_FIX: 'var(--amber)', LOST: 'var(--red)', STOPPED: 'var(--red)' };
+function renderStatus() {
+  const s = state.status;
+  const label = s.emergency_stop ? 'Emergency stop' : s.state.charAt(0) + s.state.slice(1).toLowerCase().replace(/_/g, ' ');
+  document.getElementById('stateText').textContent = label;
+  document.getElementById('stateDot').style.background = s.emergency_stop ? 'var(--red)' : STATE_COLOUR[s.state];
+  document.getElementById('modeText').textContent = `· ${s.mode}`;
+  const put = (id, text) => { document.getElementById(id).firstChild.textContent = text; };
+  put('line', `${s.line} / ${s.lines}`);
+  put('speed', s.speed.toFixed(2));
+  const signed = (value, digits) => (value < 0 ? '−' : '+') + Math.abs(value).toFixed(digits);
+  put('cross', signed(s.cross_track, 2));
+  put('heading', signed(s.heading, 0));
+  const start = document.getElementById('start');
+  start.textContent = s.mode === 'autonomous' ? 'Pause' : 'Start survey';
+  start.classList.toggle('pause', s.mode === 'autonomous');
+  const stop = document.getElementById('stop');
+  stop.textContent = s.emergency_stop ? 'Resume' : 'Emergency stop';
+  stop.classList.toggle('resume', s.emergency_stop);
+}
+
+const canvas = document.getElementById('mapCanvas'), ctx = canvas.getContext('2d');
+const MARGIN = { left: 50, right: 18, top: 40, bottom: 40 };
+let frame = null;
+
+// Wheel zooms about the cursor, drag pans, double-click returns to the fitted view
+canvas.addEventListener('wheel', e => {
+  if (!frame) return;
+  e.preventDefault();
+  const factor = Math.exp(-e.deltaY * 0.0015);
+  const px = e.offsetX - frame.left - frame.spanX / 2, py = e.offsetY - frame.top - frame.spanY / 2;
+  view.cx += px / frame.scale * (1 - 1 / factor);
+  view.cy -= py / frame.scale * (1 - 1 / factor);
+  view.zoom = Math.min(400, Math.max(1, view.zoom * factor));
+}, { passive: false });
+let dragging = null;
+canvas.addEventListener('pointerdown', e => { dragging = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => {
+  if (!dragging || !frame) return;
+  view.cx -= (e.clientX - dragging[0]) / frame.scale;
+  view.cy += (e.clientY - dragging[1]) / frame.scale;
+  dragging = [e.clientX, e.clientY];
+});
+canvas.addEventListener('pointerup', () => { dragging = null; });
+canvas.addEventListener('dblclick', () => { view.zoom = 1; view.cx = 0; view.cy = 0; });
+const FONT = '11px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+
+function bounds() {
+  const points = state.lines.flatMap(l => [l.a, l.b]).concat(state.route);
+  if (!points.length) {
+    const [w, l] = state.status ? state.status.extent : [50, 50];
+    return { minX: -3, maxX: l + 3, minY: -3, maxY: w + 3 };
+  }
+  const xs = points.map(p => p[0]), ys = points.map(p => p[1]);
+  return { minX: Math.min(...xs) - 3, maxX: Math.max(...xs) + 3, minY: Math.min(...ys) - 3, maxY: Math.max(...ys) + 3 };
+}
+
+function drawVehicle(X, Y, scale, x, y, heading, body, wheel, wheels, extra) {
+  ctx.save(); ctx.translate(X(x), Y(y)); ctx.rotate(-heading); ctx.scale(scale, scale);
+  ctx.fillStyle = '#1f2937';
+  for (const [wx, wy] of wheels) ctx.fillRect(wx - wheel[0] / 2, wy - wheel[1] / 2, wheel[0], wheel[1]);
+  ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#1f2937'; ctx.lineWidth = 0.03;
+  ctx.fillRect(-body[0] / 2, -body[1] / 2, body[0], body[1]); ctx.strokeRect(-body[0] / 2, -body[1] / 2, body[0], body[1]);
+  if (extra) extra();
+  ctx.restore();
+}
+
+function drawRover(X, Y, scale) {
+  const { x, y, yaw } = state.pose;
+  drawVehicle(X, Y, scale, x, y, yaw, ROVER.body, ROVER.wheel, ROVER.wheels, () => {
+    ctx.fillStyle = '#d93025'; ctx.fillRect(ROVER.body[0] / 2 - 0.12, -0.15, 0.12, 0.3);
+    ctx.fillStyle = '#1e63d6'; ctx.beginPath(); ctx.arc(ROVER.lidar, 0, 0.04, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = '#188038'; ctx.fillRect(ROVER.antenna - 0.04, -0.04, 0.08, 0.08);
+  });
+}
+
+function drawArrow(X, Y, a, b, size) {
+  const angle = Math.atan2(-(b[1] - a[1]), b[0] - a[0]);
+  ctx.save(); ctx.translate(X((a[0] + b[0]) / 2), Y((a[1] + b[1]) / 2)); ctx.rotate(angle);
+  ctx.beginPath(); ctx.moveTo(size, 0); ctx.lineTo(-size, size * 0.7); ctx.lineTo(-size * 0.4, 0); ctx.lineTo(-size, -size * 0.7); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+// Rigid drawbar trailers: each cart yaws about its tow point so that its axle follows the tow point's motion
+const train = { previous: null, headings: null };
+function updateTrain() {
+  const { x, y, yaw } = state.pose;
+  let [tx, ty] = [x + ROVER.tow * Math.cos(yaw), y + ROVER.tow * Math.sin(yaw)];
+  if (!train.headings) train.headings = CARTS.map(() => yaw);
+  const tows = [];
+  CARTS.forEach((cart, i) => {
+    if (train.previous) {
+      const [dx, dy] = [tx - train.previous[i][0], ty - train.previous[i][1]], step = Math.hypot(dx, dy);
+      if (step > 1e-4) train.headings[i] += step / cart.axle * Math.sin(Math.atan2(dy, dx) - train.headings[i]);
+    }
+    tows.push([tx, ty]);
+    const heading = train.headings[i];
+    cart.pose = [tx - cart.reach * Math.cos(heading), ty - cart.reach * Math.sin(heading), heading];
+    if (cart.tow !== undefined) [tx, ty] = [cart.pose[0] + cart.tow * Math.cos(heading), cart.pose[1] + cart.tow * Math.sin(heading)];
+  });
+  train.previous = tows;
+}
+
+function drawTrain(X, Y, scale) {
+  if (!(state.status && state.status.towed_length > 0)) return;
+  updateTrain();
+  ctx.strokeStyle = '#1f2937'; ctx.lineWidth = Math.max(1, 0.04 * scale);
+  let [tx, ty] = [state.pose.x + ROVER.tow * Math.cos(state.pose.yaw), state.pose.y + ROVER.tow * Math.sin(state.pose.yaw)];
+  for (const cart of CARTS) {
+    const [cx, cy, heading] = cart.pose;
+    ctx.beginPath(); ctx.moveTo(X(tx), Y(ty)); ctx.lineTo(X(cx + cart.hitch * Math.cos(heading)), Y(cy + cart.hitch * Math.sin(heading))); ctx.stroke();
+    drawVehicle(X, Y, scale, cx, cy, heading, CART_BODY, cart.wheel, cart.wheels);
+    if (cart.tow !== undefined) [tx, ty] = [cx + cart.tow * Math.cos(heading), cy + cart.tow * Math.sin(heading)];
+  }
+}
+
+function draw() {
+  const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
+  if (canvas.width !== w * dpr || canvas.height !== h * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const fit = bounds();
+  const left = MARGIN.left, top = MARGIN.top, spanX = w - MARGIN.left - MARGIN.right, spanY = h - MARGIN.top - MARGIN.bottom;
+  const scale = Math.min(spanX / (fit.maxX - fit.minX), spanY / (fit.maxY - fit.minY)) * view.zoom;
+  const cx = (fit.minX + fit.maxX) / 2 + view.cx, cy = (fit.minY + fit.maxY) / 2 + view.cy;
+  const X = x => left + spanX / 2 + (x - cx) * scale, Y = y => top + spanY / 2 - (y - cy) * scale;
+  const b = { minX: cx - spanX / 2 / scale, maxX: cx + spanX / 2 / scale, minY: cy - spanY / 2 / scale, maxY: cy + spanY / 2 / scale };
+  frame = { left, top, spanX, spanY, scale, cx, cy };
+
+  ctx.save(); ctx.beginPath(); ctx.rect(left, top, spanX, spanY); ctx.clip();
+  const tick = [0.5, 1, 2, 5, 10, 20, 50, 100].find(step => step * scale >= 60) || 100;
+  const minor = tick / 5;
+  ctx.lineWidth = 1;
+  for (let g = Math.ceil(b.minX / minor) * minor; g <= b.maxX; g += minor) {
+    ctx.strokeStyle = Math.abs(g / tick - Math.round(g / tick)) > 1e-6 ? '#f1f3f5' : '#e3e6ea'; ctx.beginPath(); ctx.moveTo(X(g), top); ctx.lineTo(X(g), top + spanY); ctx.stroke();
+  }
+  for (let g = Math.ceil(b.minY / minor) * minor; g <= b.maxY; g += minor) {
+    ctx.strokeStyle = Math.abs(g / tick - Math.round(g / tick)) > 1e-6 ? '#f1f3f5' : '#e3e6ea'; ctx.beginPath(); ctx.moveTo(left, Y(g)); ctx.lineTo(left + spanX, Y(g)); ctx.stroke();
+  }
+
+  const corridor = state.status ? state.status.corridor : 0.5;
+  ctx.fillStyle = 'rgba(217, 48, 37, 0.12)'; ctx.beginPath();
+  for (const [x, y] of state.obstacles.values()) { ctx.moveTo(X(x) + corridor * scale, Y(y)); ctx.arc(X(x), Y(y), corridor * scale, 0, 2 * Math.PI); }
+  ctx.fill();
+  ctx.fillStyle = '#374151';
+  const cell = Math.max(2, OBSTACLE_CELL * scale);
+  for (const [x, y] of state.obstacles.values()) ctx.fillRect(X(x) - cell / 2, Y(y) - cell / 2, cell, cell);
+
+  ctx.strokeStyle = '#9db4d0'; ctx.fillStyle = '#9db4d0'; ctx.lineWidth = 1.5;
+  for (const { a, b: e, connector } of state.lines) {
+    ctx.setLineDash(connector ? [4, 4] : []);
+    ctx.beginPath(); ctx.moveTo(X(a[0]), Y(a[1])); ctx.lineTo(X(e[0]), Y(e[1])); ctx.stroke();
+    if (!connector) drawArrow(X, Y, a, e, 5);
+  }
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = 'rgba(24, 128, 56, 0.6)';
+  for (const [x, y] of state.scan) ctx.fillRect(X(x) - 1, Y(y) - 1, 2, 2);
+
+  if (state.route.length) {
+    ctx.strokeStyle = '#1e63d6'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.beginPath();
+    state.route.forEach(([x, y], i) => i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)));
+    if (state.pose) ctx.lineTo(X(state.pose.x), Y(state.pose.y));
+    ctx.stroke();
+  }
+  if (state.pose) { drawTrain(X, Y, scale); drawRover(X, Y, scale); }
+  ctx.restore();
+
+  ctx.strokeStyle = '#cfd4da'; ctx.lineWidth = 1; ctx.strokeRect(left, top, spanX, spanY);
+  ctx.fillStyle = '#6b7280'; ctx.font = FONT;
+  const label = g => Number(g.toFixed(2));
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let g = Math.ceil(b.minX / tick) * tick; g <= b.maxX; g += tick) ctx.fillText(label(g), X(g), top + spanY + 6);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let g = Math.ceil(b.minY / tick) * tick; g <= b.maxY; g += tick) ctx.fillText(label(g), left - 8, Y(g));
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillText('East (m)', left + spanX / 2, h - 8);
+  ctx.save(); ctx.translate(14, top + spanY / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('North (m)', 0, 0); ctx.restore();
+
+  const legend = [['#9db4d0', 'survey line'], ['#1e63d6', 'driven route'], ['#374151', 'obstacle'], ['rgba(217,48,37,0.25)', `keep-out ${corridor.toFixed(1)} m`]];
+  const lw = 128, lh = 16 * legend.length + 10, lx = left + spanX - lw - 10, ly = top + 10;
+  ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fillRect(lx, ly, lw, lh);
+  ctx.strokeStyle = '#e3e6ea'; ctx.strokeRect(lx, ly, lw, lh);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  legend.forEach(([colour, label], i) => {
+    ctx.fillStyle = colour; ctx.fillRect(lx + 10, ly + 10 + 16 * i, 14, 4);
+    ctx.fillStyle = '#4b5563'; ctx.fillText(label, lx + 30, ly + 12 + 16 * i);
+  });
+}
+
+setInterval(draw, 50);
+setInterval(() => { document.getElementById('clock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }, 1000);
+</script>
+</body>
+</html>

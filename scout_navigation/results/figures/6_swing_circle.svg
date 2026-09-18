@@ -1,0 +1,17 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 250' width='1000' height='250' font-family='Helvetica, Arial, sans-serif' font-size='13'>
+<defs><marker id='ar' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='7' markerHeight='7' orient='auto-start-reverse'><polygon points='0,1 10,5 0,9' fill='#10202C'/></marker></defs>
+<rect width='1000' height='250' fill='white'/>
+<line x1='60' y1='150' x2='700' y2='150' stroke='#0A6C8A' stroke-width='1.6' stroke-dasharray='8 5'/>
+<text x='90' y='140' text-anchor='start' fill='#0A6C8A' font-size='12' font-weight='normal'>this line</text>
+<line x1='700' y1='150' x2='700' y2='40' stroke='#0A6C8A' stroke-width='1.6' stroke-dasharray='8 5'/>
+<text x='712' y='60' text-anchor='start' fill='#0A6C8A' font-size='12' font-weight='normal'>next line</text>
+<circle cx='700' cy='150' r='78' fill='none' stroke='#10202C' stroke-width='1.5' stroke-dasharray='5 4'/>
+<rect x='686' y='138' width='28' height='24' rx='2' fill='#10202C'/>
+<line x1='700' y1='150' x2='778' y2='150' stroke='#10202C' stroke-width='1.2'/>
+<text x='740' y='142' text-anchor='middle' fill='#10202C' font-size='12' font-weight='normal'>1.08 m</text>
+<text x='620' y='240' text-anchor='middle' fill='#5D7284' font-size='12' font-weight='normal'>swing circle of the body</text>
+<circle cx='700' cy='215' r='6' fill='#A93B26'/>
+<text x='716' y='219' text-anchor='start' fill='#A93B26' font-size='12' font-weight='bold'>pole 0.90 m away → inside circle → hold</text>
+<circle cx='860' cy='150' r='17' fill='#A93B26' opacity='0.35'/>
+<text x='884' y='154' text-anchor='start' fill='#5D7284' font-size='12' font-weight='normal'>outside → turn allowed</text>
+</svg>

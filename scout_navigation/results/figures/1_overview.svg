@@ -1,0 +1,34 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 300' width='1000' height='300' font-family='Helvetica, Arial, sans-serif' font-size='13'>
+<defs><marker id='ar' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='7' markerHeight='7' orient='auto-start-reverse'><polygon points='0,1 10,5 0,9' fill='#10202C'/></marker></defs>
+<rect width='1000' height='300' fill='white'/>
+<rect x='30' y='112' width='130' height='66' rx='3' fill='#F1F5F8' stroke='#10202C' stroke-width='1.4'/>
+<text x='95' y='140' text-anchor='middle' fill='#10202C' font-size='13' font-weight='bold'>LiDAR scan</text>
+<text x='95' y='160' text-anchor='middle' fill='#5D7284' font-size='12' font-weight='normal'>720 beams · 360°</text>
+<line x1='160' y1='145' x2='196' y2='145' stroke='#10202C' stroke-width='1.6' marker-end='url(#ar)'/>
+<rect x='200' y='100' width='160' height='90' rx='3' fill='#F1F5F8' stroke='#10202C' stroke-width='1.4'/>
+<text x='280' y='126' text-anchor='middle' fill='#10202C' font-size='13' font-weight='bold'>Three filters</text>
+<text x='280' y='146' text-anchor='middle' fill='#5D7284' font-size='12' font-weight='normal'>ground · slopes</text>
+<text x='280' y='164' text-anchor='middle' fill='#5D7284' font-size='12' font-weight='normal'>own towed carts</text>
+<line x1='360' y1='145' x2='396' y2='145' stroke='#10202C' stroke-width='1.6' marker-end='url(#ar)'/>
+<rect x='400' y='112' width='140' height='66' rx='3' fill='#F1F5F8' stroke='#10202C' stroke-width='1.4'/>
+<text x='470' y='140' text-anchor='middle' fill='#10202C' font-size='13' font-weight='bold'>Obstacle points</text>
+<text x='470' y='160' text-anchor='middle' fill='#5D7284' font-size='12' font-weight='normal'>world frame</text>
+<line x1='540' y1='145' x2='576' y2='145' stroke='#10202C' stroke-width='1.6' marker-end='url(#ar)'/>
+<rect x='580' y='112' width='150' height='66' rx='3' fill='#F1F5F8' stroke='#10202C' stroke-width='1.4'/>
+<text x='655' y='140' text-anchor='middle' fill='#10202C' font-size='13' font-weight='bold'>Corridor test</text>
+<text x='655' y='160' text-anchor='middle' fill='#5D7284' font-size='12' font-weight='normal'>blocking distance</text>
+<path d='M 730 130 C 760 130 770 58 800 58' fill='none' stroke='#10202C' stroke-width='1.6' marker-end='url(#ar)'/>
+<line x1='730' y1='145' x2='800' y2='145' stroke='#10202C' stroke-width='1.6' marker-end='url(#ar)'/>
+<path d='M 730 160 C 760 160 770 232 800 232' fill='none' stroke='#10202C' stroke-width='1.6' marker-end='url(#ar)'/>
+<text x='762' y='44' text-anchor='middle' fill='#A93B26' font-size='12' font-weight='normal'>&lt; 1.16 m</text>
+<text x='762' y='138' text-anchor='middle' fill='#0A6C8A' font-size='12' font-weight='normal'>&lt; 10 m</text>
+<text x='762' y='256' text-anchor='middle' fill='#5D7284' font-size='12' font-weight='normal'>clear</text>
+<rect x='804' y='34' width='166' height='48' rx='3' fill='#F6E0DA' stroke='#A93B26' stroke-width='1.4'/>
+<text x='887' y='63' text-anchor='middle' fill='#A93B26' font-size='13' font-weight='bold'>Stop and hold</text>
+<rect x='804' y='118' width='166' height='54' rx='3' fill='#D9EBF2' stroke='#0A6C8A' stroke-width='1.4'/>
+<text x='887' y='141' text-anchor='middle' fill='#0A6C8A' font-size='13' font-weight='bold'>Plan a detour</text>
+<text x='887' y='160' text-anchor='middle' fill='#0A6C8A' font-size='12' font-weight='normal'>splice into mission</text>
+<rect x='804' y='208' width='166' height='48' rx='3' fill='#F1F5F8' stroke='#10202C' stroke-width='1.4'/>
+<text x='887' y='237' text-anchor='middle' fill='#10202C' font-size='13' font-weight='bold'>Continue on line</text>
+<text x='30' y='288' text-anchor='start' fill='#5D7284' font-size='12' font-weight='normal'>Separately, before every spot turn: check the swing circle around the rover.</text>
+</svg>

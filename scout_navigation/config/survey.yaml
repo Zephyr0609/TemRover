@@ -1,0 +1,59 @@
+/**:
+  ros__parameters:
+    # Survey area — Royal Park test grid from the 12/08 minutes
+    origin_latitude: -37.7963
+    origin_longitude: 144.9614
+    grid_bearing: 0.0
+    grid_width: 50.0
+    grid_length: 50.0
+    line_spacing: 5.0
+    point_spacing: 0.1
+    turn_radius: 0.0
+
+    # Scout 2.0 datasheet: 6 km/h top speed, 0.2 m minimum braking distance from 6 km/h
+    cruise_speed: 1.5
+    max_deceleration: 6.9
+    # CAN motion frame caps both channels at +/-1500 units
+    max_angular_velocity: 1.5
+    rotation_rate: 1.0
+
+    heading_gain: 1.5
+    cross_track_gain: 0.8
+    rotation_damping: 0.6
+
+    arrival_tolerance: 0.05
+    halt_speed: 0.05
+    # Stops rather than driving on when the rover loses the line; it cannot re-acquire yet
+    path_deviation_limit: 3.0
+
+    # RPLIDAR S2L on its mast: base_link sits 0.235 m up, the mast adds 0.16 m, 0.34 m forward
+    lidar_height: 0.395
+    lidar_offset: 0.34
+    # A wall fills up to a quarter turn of the scan up close; a slope fills half or more
+    maximum_object_angle: 1.57
+    # Scout 2.0 body 0.925 x 0.70 m: half width, and half diagonal swept by a spot turn
+    rover_half_width: 0.35
+    swing_radius: 0.58
+    obstacle_standoff: 0.5
+    # Planning margin = clearance + obstacle_hysteresis; the stop decision keeps its own, wider hysteresis
+    obstacle_hysteresis: 0.1
+    obstacle_clearance: 0.15
+    hold_hysteresis: 0.5
+    # Ramp length follows from the lateral acceleration the towed carts tolerate at cruise speed
+    detour_lookahead: 10.0
+    detour_lateral_acceleration: 1.0
+    detour_segment_length: 1.0
+
+    # Driven route kept for the dashboard: one point per 0.25 m, latched every 2 s
+    route_spacing: 0.25
+    route_period: 2.0
+
+    # EKF process noise per control step, east/north and yaw
+    position_process_noise: 0.01
+    yaw_process_noise: 0.01
+    # ZED-F9P RTK horizontal accuracy
+    gnss_noise: 0.02
+    # Antenna sits 0.30 m behind base_link (URDF navsat_link), so it swings when the rover yaws
+    gnss_offset: -0.30
+
+    can_interface: can0

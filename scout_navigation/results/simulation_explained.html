@@ -1,0 +1,535 @@
+<title>TEMRover 仿真原理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground: #E8EDF1; --surface: #FBFDFE; --surface-2: #F1F5F8;
+    --ink: #10202C; --muted: #5D7284; --line: #C9D6E0;
+    --accent: #0A6C8A; --accent-soft: #D9EBF2;
+    --danger: #A93B26; --danger-soft: #F6E0DA; --good: #2C6B4E;
+    --band: 840px; --wide: 1040px;
+    --cjk: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC";
+    --display: "Archivo", var(--cjk), system-ui, sans-serif;
+    --body: "IBM Plex Sans", var(--cjk), system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0D141C; --surface: #141F2A; --surface-2: #1A2733;
+      --ink: #DFE9F0; --muted: #8CA3B5; --line: #2B3C4B;
+      --accent: #52BCDB; --accent-soft: #123340;
+      --danger: #E48468; --danger-soft: #3B231C; --good: #74C296;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0D141C; --surface: #141F2A; --surface-2: #1A2733;
+    --ink: #DFE9F0; --muted: #8CA3B5; --line: #2B3C4B;
+    --accent: #52BCDB; --accent-soft: #123340;
+    --danger: #E48468; --danger-soft: #3B231C; --good: #74C296;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--body); font-size: 16.5px; line-height: 1.75; -webkit-font-smoothing: antialiased; }
+  .page { max-width: var(--wide); margin: 0 auto; padding: 0 24px 96px; }
+  .band { max-width: var(--band); margin-inline: auto; }
+  header.masthead { padding: 56px 0 34px; border-bottom: 2px solid var(--ink); margin-bottom: 40px; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); margin: 0 0 14px; }
+  h1 { font-family: var(--display); font-weight: 700; font-size: clamp(34px, 5.2vw, 52px); line-height: 1.08; letter-spacing: -0.02em; margin: 0 0 16px; text-wrap: balance; }
+  .standfirst { font-size: 19px; color: var(--muted); margin: 0; max-width: 60ch; }
+  h2 { font-family: var(--display); font-weight: 600; font-size: 27px; letter-spacing: -0.01em; line-height: 1.25; margin: 0 0 6px; text-wrap: balance; }
+  h3 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 22px 0 8px; }
+  section { margin-bottom: 58px; }
+  .step-head { display: flex; gap: 18px; align-items: baseline; border-top: 1px solid var(--line); padding-top: 20px; margin-bottom: 18px; }
+  .step-num { font-family: var(--mono); font-weight: 500; font-size: 13px; color: var(--accent); letter-spacing: 0.08em; padding-top: 6px; white-space: nowrap; }
+  .step-head p { margin: 4px 0 0; color: var(--muted); font-size: 15.5px; }
+  p { margin: 0 0 14px; max-width: 68ch; }
+  strong { font-weight: 600; }
+  code { font-family: var(--mono); font-size: 0.88em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px; }
+  .thesis { background: var(--surface); border-left: 3px solid var(--accent); padding: 22px 26px; margin: 0 0 18px; }
+  .thesis p { margin: 0; font-size: 18px; max-width: 62ch; }
+  .thesis p + p { margin-top: 10px; }
+  .oneline { font-size: 17.5px; font-weight: 500; padding: 14px 18px; background: var(--accent-soft); border-radius: 4px; margin: 0 0 16px; max-width: 70ch; }
+  figure { margin: 26px 0; }
+  figure svg { display: block; width: 100%; max-width: 100%; height: auto; }
+  .figwrap { background: var(--surface); border: 1px solid var(--line); padding: 20px 18px 12px; overflow-x: auto; }
+  figcaption { font-size: 14.5px; color: var(--muted); margin-top: 12px; max-width: 74ch; }
+  .svg-ink { fill: var(--ink); } .svg-mut { fill: var(--muted); } .svg-acc { fill: var(--accent); } .svg-dan { fill: var(--danger); }
+  .svg-box { fill: var(--surface-2); stroke: var(--ink); stroke-width: 1.4; }
+  .svg-accbox { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; }
+  text { font-family: var(--mono); font-size: 12px; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 16px; font-size: 15px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--ink); }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tablewrap { overflow-x: auto; }
+  .formula { font-family: var(--mono); background: var(--surface); border: 1px solid var(--line); padding: 14px 18px; font-size: 15px; margin: 0 0 14px; overflow-x: auto; }
+  .formula .why { color: var(--muted); font-size: 13px; display: block; margin-top: 8px; font-family: var(--body); }
+  .why-box { border-left: 3px solid var(--line); padding: 4px 18px; margin: 16px 0; color: var(--muted); font-size: 15px; }
+  .why-box strong { color: var(--ink); }
+  .why-box p { margin: 0 0 6px; }
+  .note { background: var(--danger-soft); border-left: 3px solid var(--danger); padding: 16px 20px; margin: 20px 0; }
+  .note h3 { color: var(--danger); margin: 0 0 6px; }
+  .note p { margin: 0; } .note p + p { margin-top: 8px; }
+  ul.plain { padding-left: 20px; margin: 0 0 14px; max-width: 68ch; }
+  ul.plain li { margin-bottom: 8px; }
+  footer.foot { border-top: 1px solid var(--line); padding-top: 18px; color: var(--muted); font-size: 14px; }
+  @media (max-width: 640px) { .step-head { flex-direction: column; gap: 4px; } body { font-size: 16px; } }
+</style>
+
+<div class="page">
+
+<header class="masthead band">
+  <p class="eyebrow">TEMRover · Avenue 3 · 自主导航</p>
+  <h1>仿真在做什么</h1>
+  <p class="standfirst">不是一堆工具。是一个闭环：车看到什么，就判断自己在哪，决定往哪走，动一下，再看。</p>
+</header>
+
+<section class="band">
+  <div class="thesis">
+    <p><strong>一句话：仿真把真车换成一个物理引擎里的车，其余的一切 —— 导航代码、决策逻辑、控制律 —— 和真车上跑的是同一份。</strong></p>
+    <p>所以仿真回答的问题是：<em>如果传感器给出这些读数，我们的代码会让车怎么动？</em> 车动了之后传感器读数会变，代码再决定。这个循环每秒跑 20 次。</p>
+  </div>
+  <p>仿真的价值不在画面好看，而在于它提供了一件真车永远给不了的东西：<strong>车的真实位置</strong>。有了真值才能量出"跟线误差 0.053 m"这种数，才能知道算法到底对不对。</p>
+</section>
+
+<section>
+  <div class="band">
+    <div class="step-head">
+      <span class="step-num">总览</span>
+      <div><h2>这个闭环长什么样</h2><p>四个格子，转一圈是一个控制周期。</p></div>
+    </div>
+  </div>
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 1000 360" role="img" aria-label="闭环：世界物理产生传感器读数，传感器读数进入导航器，导航器估计位姿并输出速度指令，指令驱动车轮改变世界。真值位姿只流向评分脚本，不进导航器。">
+        <defs>
+          <marker id="l-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <rect x="60" y="40" width="300" height="96" rx="3" class="svg-box"/>
+        <text x="210" y="66" text-anchor="middle" class="svg-ink">世界（Gazebo 物理引擎）</text>
+        <text x="210" y="88" text-anchor="middle" class="svg-mut">车体 40 kg · 四轮打滑转向 · 地面摩擦</text>
+        <text x="210" y="106" text-anchor="middle" class="svg-mut">障碍物 · 每步 1 ms 积分</text>
+
+        <rect x="640" y="40" width="300" height="96" rx="3" class="svg-box"/>
+        <text x="790" y="66" text-anchor="middle" class="svg-ink">传感器（模拟）</text>
+        <text x="790" y="88" text-anchor="middle" class="svg-mut">GPS 10 Hz · IMU 100 Hz</text>
+        <text x="790" y="106" text-anchor="middle" class="svg-mut">激光 10 Hz · 轮速 50 Hz</text>
+
+        <rect x="640" y="220" width="300" height="96" rx="3" class="svg-accbox"/>
+        <text x="790" y="246" text-anchor="middle" class="svg-acc">导航器（真车同一份代码）</text>
+        <text x="790" y="268" text-anchor="middle" class="svg-acc">估计位姿 → 判断状态 → 算指令</text>
+        <text x="790" y="286" text-anchor="middle" class="svg-acc">每秒 20 次</text>
+
+        <rect x="60" y="220" width="300" height="96" rx="3" class="svg-box"/>
+        <text x="210" y="246" text-anchor="middle" class="svg-ink">执行（DiffDrive 插件）</text>
+        <text x="210" y="268" text-anchor="middle" class="svg-mut">线速度、角速度 → 左右轮转速</text>
+        <text x="210" y="286" text-anchor="middle" class="svg-mut">限幅 1.5 m/s · 6.9 m/s²</text>
+
+        <line x1="360" y1="88" x2="636" y2="88" stroke="currentColor" stroke-width="1.6" marker-end="url(#l-ar)"/>
+        <text x="498" y="78" text-anchor="middle" class="svg-ink">世界的真实状态被"测量"</text>
+
+        <line x1="790" y1="136" x2="790" y2="216" stroke="currentColor" stroke-width="1.6" marker-end="url(#l-ar)"/>
+        <text x="806" y="180" class="svg-ink">ROS 话题</text>
+
+        <line x1="640" y1="268" x2="364" y2="268" stroke="currentColor" stroke-width="1.6" marker-end="url(#l-ar)"/>
+        <text x="502" y="258" text-anchor="middle" class="svg-ink">/cmd_vel：要多快、转多快</text>
+
+        <line x1="210" y1="220" x2="210" y2="140" stroke="currentColor" stroke-width="1.6" marker-end="url(#l-ar)"/>
+        <text x="194" y="184" text-anchor="end" class="svg-ink">车轮转，车动了</text>
+
+        <rect x="400" y="300" width="200" height="46" rx="3" fill="none" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="5 4"/>
+        <text x="500" y="320" text-anchor="middle" class="svg-mut">真值位姿</text>
+        <text x="500" y="338" text-anchor="middle" class="svg-mut">只给评分脚本</text>
+        <line x1="300" y1="136" x2="440" y2="298" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#l-ar)"/>
+      </svg>
+    </div>
+    <figcaption>导航器看不到真值，只看传感器。真值单独流向评分脚本，用来量导航器错了多少。这一点是仿真结果可信的前提。</figcaption>
+  </figure>
+</section>
+
+<section class="band">
+  <div class="step-head">
+    <span class="step-num">车要知道什么</span>
+    <div><h2>四个问题，四个来源</h2><p>导航器每个周期都在回答这四个问题。</p></div>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>问题</th><th>需要的信息</th><th>从哪来</th></tr></thead>
+      <tbody>
+        <tr><td><strong>我在哪</strong></td><td>东、北坐标</td><td>GPS 位置修正 + 轮速沿航向积分</td></tr>
+        <tr><td><strong>我朝哪</strong></td><td>航向角</td><td>起步时直行 8 m 从 GPS 轨迹解出，之后陀螺仪积分</td></tr>
+        <tr><td><strong>要去哪</strong></td><td>一列行驶步和转弯步</td><td>从网格参数（边长、线距、方位）生成，起步时算一次</td></tr>
+        <tr><td><strong>周围有什么</strong></td><td>障碍点的世界坐标</td><td>激光回波过滤后，用当前位姿转换</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>前两个问题合起来叫"位姿估计"，由一个卡尔曼滤波器回答。第三个问题在起步时回答一次，之后只在绕障时局部改写。第四个问题在另一页（避障原理）里展开。</p>
+</section>
+
+<section>
+  <div class="band">
+    <div class="step-head">
+      <span class="step-num">STEP 01</span>
+      <div><h2>我在哪：位置怎么更新</h2><p>两个动作交替进行：预测、修正。</p></div>
+    </div>
+    <div class="oneline">每秒 20 次用轮速推算位置，每秒 10 次用 GPS 拉回来。推算会漂，GPS 不漂。</div>
+    <p><strong>预测</strong>：每 50 ms 一次。拿当前轮速，沿着当前航向往前推一小步；拿陀螺仪的角速度，把航向转一小角。这一步只靠车自己的传感器，不依赖外部，但误差会累积。</p>
+    <p><strong>修正</strong>：每 100 ms 一次 GPS。把推算位置和 GPS 位置比较，按各自的可信度加权，把估计值拉向 GPS。滤波器相信 GPS 的程度由参数 <code>gnss_noise</code> = 0.02 m 决定，对应 RTK 精度。</p>
+  </div>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 1000 230" role="img" aria-label="时间轴：每 50 ms 预测一次，位置误差随推算缓慢增长；每 100 ms 一次 GPS 修正把误差拉回接近零，形成锯齿。">
+        <defs>
+          <marker id="k-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"/>
+          </marker>
+        </defs>
+        <line x1="60" y1="170" x2="940" y2="170" stroke="currentColor" stroke-width="1.4" marker-end="url(#k-ar)"/>
+        <text x="946" y="174" class="svg-mut">时间</text>
+        <line x1="60" y1="170" x2="60" y2="50" stroke="currentColor" stroke-width="1.4" marker-end="url(#k-ar)"/>
+        <text x="68" y="56" class="svg-mut">位置误差</text>
+
+        <path d="M 100 160 L 180 150 L 260 138 L 260 162 L 340 152 L 420 140 L 420 162 L 500 152 L 580 140 L 580 162 L 660 152 L 740 140 L 740 162 L 820 152 L 900 140"
+              fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+
+        <g class="svg-mut">
+          <text x="100" y="190" text-anchor="middle">预测</text>
+          <text x="180" y="190" text-anchor="middle">预测</text>
+          <text x="340" y="190" text-anchor="middle">预测</text>
+          <text x="500" y="190" text-anchor="middle">预测</text>
+          <text x="660" y="190" text-anchor="middle">预测</text>
+          <text x="820" y="190" text-anchor="middle">预测</text>
+        </g>
+        <g class="svg-dan">
+          <text x="260" y="190" text-anchor="middle">GPS 修正</text>
+          <text x="420" y="190" text-anchor="middle">GPS 修正</text>
+          <text x="580" y="190" text-anchor="middle">GPS 修正</text>
+          <text x="740" y="190" text-anchor="middle">GPS 修正</text>
+        </g>
+        <line x1="260" y1="138" x2="260" y2="162" stroke="var(--danger)" stroke-width="2.5"/>
+        <line x1="420" y1="140" x2="420" y2="162" stroke="var(--danger)" stroke-width="2.5"/>
+        <line x1="580" y1="140" x2="580" y2="162" stroke="var(--danger)" stroke-width="2.5"/>
+        <line x1="740" y1="140" x2="740" y2="162" stroke="var(--danger)" stroke-width="2.5"/>
+
+        <text x="500" y="215" text-anchor="middle" class="svg-mut">预测每 50 ms 一次，误差慢慢涨；GPS 每 100 ms 一次，把误差拉回来</text>
+      </svg>
+    </div>
+    <figcaption>这就是卡尔曼滤波在做的事。它的产出不是"GPS 位置"，而是把 GPS 和轮速揉在一起的、每 50 ms 更新一次的平滑估计。</figcaption>
+  </figure>
+
+  <div class="band">
+    <div class="why-box">
+      <p><strong>一个容易忽略的细节。</strong> GPS 天线不在车的中心，在车后 0.30 m。车转弯时天线画的圈和车中心画的圈不一样，直接把天线位置当车的位置会错 0.3 m，转弯时更糟。滤波器里显式写了这个偏移量。</p>
+    </div>
+    <div class="note">
+      <h3>仿真和真车在这里不一样</h3>
+      <p>真车的 GPS 接收机除了位置还输出<strong>速度方向</strong>，滤波器可以用它修正航向。<strong>仿真里只桥接了 GPS 位置，没有速度</strong>，所以航向修正这条路径在仿真里从未运行过。仿真里的航向只靠起步对齐加陀螺积分。</p>
+      <p>另外，<strong>仿真的 GPS 和 IMU 是无噪声的</strong>。它们给的是精确值。滤波器假设 GPS 有 2 cm 噪声，但实际喂进来的是零噪声。这意味着仿真验证的是几何和控制逻辑，不是对传感器噪声的鲁棒性。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="band">
+    <div class="step-head">
+      <span class="step-num">STEP 02</span>
+      <div><h2>我朝哪：航向从哪来</h2><p>一根 GPS 天线，静止时不知道自己朝哪。</p></div>
+    </div>
+    <div class="oneline">起步先直行 8 m，GPS 轨迹的方向就是车头方向。之后靠陀螺仪积分。</div>
+    <p>单天线 GPS 只给位置，不给朝向。车停着的时候，滤波器对航向完全没有信息。所以起步有一段<strong>对齐段</strong>：等 5 秒拿到定位，然后以 0.3 m/s 直行，直到 GPS 轨迹跨过 8 m。对这串点做一次主方向拟合，拟合出的方向就是初始航向。</p>
+  </div>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 1000 200" role="img" aria-label="车从起点以 0.3 m/s 直行 8 m，沿途的 GPS 点连成一条轨迹，对轨迹做直线拟合得到航向；之后任务网格按这个航向铺开。">
+        <defs>
+          <marker id="a-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"/>
+          </marker>
+        </defs>
+        <rect x="80" y="88" width="26" height="24" rx="2" class="svg-ink"/>
+        <text x="93" y="136" text-anchor="middle" class="svg-mut">起点</text>
+        <g fill="var(--accent)">
+          <circle cx="150" cy="99" r="4"/><circle cx="210" cy="98" r="4"/><circle cx="270" cy="101" r="4"/>
+          <circle cx="330" cy="99" r="4"/><circle cx="390" cy="100" r="4"/><circle cx="450" cy="98" r="4"/>
+          <circle cx="510" cy="100" r="4"/><circle cx="570" cy="99" r="4"/>
+        </g>
+        <text x="360" y="80" text-anchor="middle" class="svg-acc">GPS 点，每 100 ms 一个</text>
+        <line x1="120" y1="100" x2="600" y2="100" stroke="var(--ink)" stroke-width="1.4" stroke-dasharray="6 4"/>
+        <line x1="106" y1="150" x2="590" y2="150" stroke="currentColor" stroke-width="1.2" marker-start="url(#a-ar)" marker-end="url(#a-ar)"/>
+        <text x="348" y="172" text-anchor="middle" class="svg-mut">8 m，速度 0.3 m/s，约 27 秒</text>
+        <line x1="620" y1="100" x2="760" y2="100" stroke="var(--accent)" stroke-width="3" marker-end="url(#a-ar)"/>
+        <text x="690" y="88" text-anchor="middle" class="svg-acc">拟合方向 = 初始航向</text>
+        <text x="880" y="104" text-anchor="middle" class="svg-mut">之后陀螺仪接管</text>
+      </svg>
+    </div>
+    <figcaption>对齐段之后，航向由陀螺仪角速度积分维持。仿真里陀螺无噪声，这条链很准；真车上陀螺会漂，需要 GPS 速度方向来修，那条路径尚未在仿真验证。</figcaption>
+  </figure>
+
+  <div class="band">
+    <div class="why-box">
+      <p><strong>拖着小车时对齐会被拽偏。</strong> 8 m 拖挂在直行时把车往侧面拉，对齐解出来的航向偏了 12.5°。现在对齐段用陀螺仪闭环保持直行，但拖车的侧滑仍让真实车头和运动方向不一致，这是带负载时航向误差的主要来源。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="band">
+    <div class="step-head">
+      <span class="step-num">STEP 03</span>
+      <div><h2>要去哪：任务怎么生成</h2><p>不是一串坐标，是一列动作。</p></div>
+    </div>
+    <div class="oneline">五个参数生成整张网格：边长、宽度、线距、方位、起点。50 × 50 m、线距 5 m 就是 11 条线、41 步。</div>
+    <p>任务是一个列表，每一项要么是"从 A 直行到 B"，要么是"原地转 ±90°"。蛇形来回：直行 50 m，左转 90°，横移 5 m，再左转 90°，直行 50 m 回来，右转，横移，右转…… 每次转弯都是相对当前航向转 90°，<strong>不累加</strong>，所以航向误差不会一圈圈叠上去。</p>
+  </div>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 1000 300" role="img" aria-label="蛇形测线示意：四条平行线用短横移段连接，每个连接处是两次原地 90 度转弯；标出行驶步与转弯步。">
+        <defs>
+          <marker id="m-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"/>
+          </marker>
+        </defs>
+        <polyline points="100,240 820,240 820,180 100,180 100,120 820,120 820,60 100,60"
+                  fill="none" stroke="var(--accent)" stroke-width="3"/>
+        <line x1="100" y1="240" x2="820" y2="240" stroke="var(--accent)" stroke-width="3" marker-end="url(#m-ar)"/>
+        <rect x="88" y="228" width="24" height="22" rx="2" class="svg-ink"/>
+        <text x="100" y="272" text-anchor="middle" class="svg-mut">起点</text>
+
+        <text x="460" y="230" text-anchor="middle" class="svg-ink">① 直行 50 m</text>
+        <text x="460" y="170" text-anchor="middle" class="svg-ink">④ 直行 50 m</text>
+        <text x="460" y="110" text-anchor="middle" class="svg-ink">⑦ 直行 50 m</text>
+        <text x="460" y="50" text-anchor="middle" class="svg-ink">⑩ 直行 50 m</text>
+
+        <circle cx="820" cy="240" r="10" fill="var(--surface)" stroke="var(--danger)" stroke-width="2"/>
+        <text x="848" y="244" class="svg-dan">② 左转 90°</text>
+        <text x="848" y="212" class="svg-mut">③ 横移 5 m</text>
+        <circle cx="820" cy="180" r="10" fill="var(--surface)" stroke="var(--danger)" stroke-width="2"/>
+        <text x="848" y="184" class="svg-dan">左转 90°</text>
+
+        <circle cx="100" cy="180" r="10" fill="var(--surface)" stroke="var(--danger)" stroke-width="2"/>
+        <text x="72" y="184" text-anchor="end" class="svg-dan">⑤ 右转 90°</text>
+        <text x="72" y="152" text-anchor="end" class="svg-mut">⑥ 横移 5 m</text>
+        <circle cx="100" cy="120" r="10" fill="var(--surface)" stroke="var(--danger)" stroke-width="2"/>
+        <text x="72" y="124" text-anchor="end" class="svg-dan">右转 90°</text>
+
+        <circle cx="820" cy="120" r="10" fill="var(--surface)" stroke="var(--danger)" stroke-width="2"/>
+        <circle cx="820" cy="60" r="10" fill="var(--surface)" stroke="var(--danger)" stroke-width="2"/>
+        <text x="848" y="94" class="svg-mut">…以此类推，11 条线共 41 步</text>
+        <line x1="900" y1="240" x2="900" y2="180" stroke="currentColor" stroke-width="1.2" marker-start="url(#m-ar)" marker-end="url(#m-ar)"/>
+        <text x="912" y="214" class="svg-mut">5 m</text>
+      </svg>
+    </div>
+    <figcaption>圆圈是原地转弯步，直线是行驶步。绕障时只改写当前这条线剩下的行驶步，转弯步和其他线不动。</figcaption>
+  </figure>
+
+  <div class="band">
+    <div class="why-box">
+      <p><strong>网格锚在哪。</strong> 默认锚在车的起点和对齐航向上：车停哪、朝哪，网格就从哪铺开。South Lawn 用另一种模式：网格锚在实测的角点坐标上，车只需停在角点附近，跟踪器会把它拉到线上。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="band">
+    <div class="step-head">
+      <span class="step-num">STEP 04</span>
+      <div><h2>怎么走：状态机和控制律</h2><p>知道在哪、朝哪、要去哪之后，每个周期输出两个数：线速度、角速度。</p></div>
+    </div>
+    <div class="oneline">状态机决定"现在该做什么"，控制律决定"具体给多大的速度"。</div>
+  </div>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 1000 280" role="img" aria-label="状态机：等待定位 → 对齐 → 测线中 与 转弯中 交替 → 完成；测线中和转弯中都可能进入保持，测线中可能进入失线；任何状态可进入急停。">
+        <defs>
+          <marker id="s-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"/>
+          </marker>
+        </defs>
+        <rect x="40" y="100" width="140" height="52" rx="3" class="svg-box"/>
+        <text x="110" y="122" text-anchor="middle" class="svg-ink">等待定位</text>
+        <text x="110" y="140" text-anchor="middle" class="svg-mut">WAITING_FOR_FIX</text>
+
+        <line x1="180" y1="126" x2="216" y2="126" stroke="currentColor" stroke-width="1.4" marker-end="url(#s-ar)"/>
+        <text x="198" y="116" text-anchor="middle" class="svg-mut" font-size="10">有 GPS</text>
+
+        <rect x="220" y="100" width="140" height="52" rx="3" class="svg-box"/>
+        <text x="290" y="122" text-anchor="middle" class="svg-ink">对齐</text>
+        <text x="290" y="140" text-anchor="middle" class="svg-mut">ALIGNING · 直行 8 m</text>
+
+        <line x1="360" y1="126" x2="416" y2="126" stroke="currentColor" stroke-width="1.4" marker-end="url(#s-ar)"/>
+        <text x="388" y="116" text-anchor="middle" class="svg-mut" font-size="10">有航向</text>
+
+        <rect x="420" y="100" width="150" height="52" rx="3" class="svg-accbox"/>
+        <text x="495" y="122" text-anchor="middle" class="svg-acc">测线中</text>
+        <text x="495" y="140" text-anchor="middle" class="svg-acc">SURVEYING</text>
+
+        <line x1="570" y1="116" x2="646" y2="116" stroke="currentColor" stroke-width="1.4" marker-end="url(#s-ar)"/>
+        <text x="608" y="106" text-anchor="middle" class="svg-mut" font-size="10">到线尾停稳</text>
+        <line x1="646" y1="136" x2="570" y2="136" stroke="currentColor" stroke-width="1.4" marker-end="url(#s-ar)"/>
+        <text x="608" y="158" text-anchor="middle" class="svg-mut" font-size="10">转到位停稳</text>
+
+        <rect x="650" y="100" width="150" height="52" rx="3" class="svg-accbox"/>
+        <text x="725" y="122" text-anchor="middle" class="svg-acc">转弯中</text>
+        <text x="725" y="140" text-anchor="middle" class="svg-acc">TURNING</text>
+
+        <line x1="495" y1="152" x2="495" y2="216" stroke="currentColor" stroke-width="1.4" marker-end="url(#s-ar)"/>
+        <line x1="725" y1="152" x2="725" y2="216" stroke="currentColor" stroke-width="1.4" marker-end="url(#s-ar)"/>
+        <rect x="420" y="220" width="150" height="44" rx="3" fill="var(--danger-soft)" stroke="var(--danger)" stroke-width="1.2"/>
+        <text x="495" y="238" text-anchor="middle" class="svg-dan">保持 HOLDING</text>
+        <text x="495" y="254" text-anchor="middle" class="svg-dan" font-size="10">前方挡路 / 回转圆内有物</text>
+        <rect x="650" y="220" width="150" height="44" rx="3" fill="var(--danger-soft)" stroke="var(--danger)" stroke-width="1.2"/>
+        <text x="725" y="238" text-anchor="middle" class="svg-dan">保持 HOLDING</text>
+        <text x="725" y="254" text-anchor="middle" class="svg-dan" font-size="10">回转圆内有物</text>
+
+        <line x1="495" y1="100" x2="495" y2="60" stroke="currentColor" stroke-width="1.4" marker-end="url(#s-ar)"/>
+        <rect x="420" y="20" width="150" height="40" rx="3" fill="var(--danger-soft)" stroke="var(--danger)" stroke-width="1.2"/>
+        <text x="495" y="45" text-anchor="middle" class="svg-dan">失线 LOST · 偏离 &gt; 3 m</text>
+
+        <line x1="800" y1="126" x2="856" y2="126" stroke="currentColor" stroke-width="1.4" marker-end="url(#s-ar)"/>
+        <text x="828" y="116" text-anchor="middle" class="svg-mut" font-size="10">41 步走完</text>
+        <rect x="860" y="100" width="110" height="52" rx="3" class="svg-box"/>
+        <text x="915" y="122" text-anchor="middle" class="svg-ink">完成</text>
+        <text x="915" y="140" text-anchor="middle" class="svg-mut">COMPLETE</text>
+
+        <text x="40" y="270" class="svg-mut">任何状态收到急停都进入 STOPPED。保持状态在阻挡消失后自动回到原状态。</text>
+      </svg>
+    </div>
+    <figcaption>测线中和转弯中来回交替，走完 41 步就完成。两种保持都是暂停，不是失败，阻挡消失就继续。</figcaption>
+  </figure>
+
+  <div class="band">
+    <h3>测线中：给多快、往哪转</h3>
+    <div class="formula">
+      线速度 = min( 1.5 ,  √( 2 × 6.9 × 到线尾的距离 ) )
+      <span class="why">远离线尾时以巡航速度 1.5 m/s 跑；接近线尾时按 6.9 m/s² 的减速度提前减速，到点刚好停住。</span>
+    </div>
+    <div class="formula">
+      角速度 = 1.5 × 航向误差 − 0.8 × 横向偏移　（限幅 ±1.5 rad/s）
+      <span class="why">车头没对准线就转回来；车偏离线就往线上靠。两项都是比例控制。</span>
+    </div>
+    <h3>转弯中：原地转到目标航向</h3>
+    <div class="formula">
+      角速度 = 1.5 × 航向误差 − 0.6 × 当前角速度　（限幅 ±1.0 rad/s）
+      <span class="why">第二项是阻尼。没有它，40 kg 的车会围着目标来回摆。转到误差小于 2.3° 且角速度小于 0.05 rad/s 算完成。</span>
+    </div>
+    <div class="why-box">
+      <p><strong>转弯前一定先停稳。</strong> 直行步到线尾后，先把速度降到 0.05 m/s 以下，再切到转弯步。滚动中的车原地转会往前滑，转出来的位置不对。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="band">
+    <div class="step-head">
+      <span class="step-num">仿真 vs 真车</span>
+      <div><h2>只换最底下一层</h2><p>导航器、状态机、控制律、避障，真车上跑的是同一份文件。</p></div>
+    </div>
+  </div>
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 1000 250" role="img" aria-label="左右两列：顶部同一个导航器；仿真列下方是 ros_gz 桥接到 Gazebo 传感器和 DiffDrive 插件，真车列下方是 ublox、rplidar、IMU 驱动和 CAN 桥接到 Scout 2.0。只有底层不同。">
+        <defs>
+          <marker id="v-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"/>
+          </marker>
+        </defs>
+        <rect x="200" y="24" width="600" height="52" rx="3" class="svg-accbox"/>
+        <text x="500" y="46" text-anchor="middle" class="svg-acc">survey_navigator　同一份代码</text>
+        <text x="500" y="64" text-anchor="middle" class="svg-acc">位姿估计 · 任务生成 · 状态机 · 控制律 · 避障</text>
+
+        <line x1="320" y1="76" x2="320" y2="116" stroke="currentColor" stroke-width="1.4" marker-end="url(#v-ar)" marker-start="url(#v-ar)"/>
+        <line x1="680" y1="76" x2="680" y2="116" stroke="currentColor" stroke-width="1.4" marker-end="url(#v-ar)" marker-start="url(#v-ar)"/>
+        <text x="500" y="100" text-anchor="middle" class="svg-mut">同样的话题：/gps/fix  /imu/data  /scan  /odom  /cmd_vel</text>
+
+        <text x="320" y="138" text-anchor="middle" class="svg-mut" style="letter-spacing:.08em">仿真</text>
+        <rect x="80" y="146" width="480" height="40" rx="3" class="svg-box"/>
+        <text x="320" y="171" text-anchor="middle" class="svg-ink">ros_gz 桥接</text>
+        <rect x="80" y="196" width="480" height="40" rx="3" class="svg-box"/>
+        <text x="320" y="221" text-anchor="middle" class="svg-ink">Gazebo：模拟传感器 + DiffDrive 插件 + 物理引擎</text>
+
+        <text x="750" y="138" text-anchor="middle" class="svg-mut" style="letter-spacing:.08em">真车</text>
+        <rect x="580" y="146" width="340" height="40" rx="3" class="svg-box"/>
+        <text x="750" y="171" text-anchor="middle" class="svg-ink">ublox_gps · rplidar · IMU 驱动 · scout_can_bridge</text>
+        <rect x="580" y="196" width="340" height="40" rx="3" class="svg-box"/>
+        <text x="750" y="221" text-anchor="middle" class="svg-ink">真实传感器 + CAN 0x111 → Scout 2.0</text>
+      </svg>
+    </div>
+    <figcaption>顶层完全相同，中间的话题名相同，只有底层从"物理引擎里的车"换成"真的车"。这是仿真结果能迁移到真车的原因。</figcaption>
+  </figure>
+
+  <div class="band">
+    <h3>仿真给了什么真车给不了的</h3>
+    <ul class="plain">
+      <li><strong>真值位置。</strong> 真车只有 RTK，没有"真正的位置"可以对比。仿真有，所以能量出误差。</li>
+      <li><strong>可重复。</strong> 同一个场景跑一百次，条件完全一样。改一个参数就能看出影响。</li>
+      <li><strong>不会撞坏东西。</strong> 六轮失败的反应式避障、转弯打滑、拖车甩尾，全部在仿真里试出来的。</li>
+    </ul>
+    <h3>仿真没有模拟什么</h3>
+    <ul class="plain">
+      <li><strong>传感器噪声。</strong> 仿真 GPS 和 IMU 是精确的。真车 RTK 有 2 cm 抖动，还可能丢锁。</li>
+      <li><strong>GPS 速度方向。</strong> 没桥接进来，航向修正路径未在仿真验证。</li>
+      <li><strong>真实地形。</strong> 目前用的是平地。起伏地形的世界文件有，但拖车动力学在起伏地面上没有跑通。</li>
+      <li><strong>拖车的真实动力学。</strong> 挂上 8 m 拖挂后原地转向严重振荡，这是仿真发现的真问题，但仿真里的拖车模型本身也未经实物校准。</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band">
+  <div class="step-head">
+    <span class="step-num">仿真发现过什么</span>
+    <div><h2>为什么值得做仿真</h2><p>每一条都是真车上撞出来才知道的问题，仿真里先撞了。</p></div>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>发现</th><th>表现</th><th>根因</th></tr></thead>
+      <tbody>
+        <tr><td>里程计差 4 倍</td><td>轮速推算的位置严重偏小</td><td>厂家模型里轮径和轮距参数写错</td></tr>
+        <tr><td>车不转弯</td><td>轮子动作对，车身不转</td><td>摩擦方向定义在世界坐标系而非车轮坐标系</td></tr>
+        <tr><td>绕障左右摇摆</td><td>同一障碍物两次规划方向相反</td><td>GPS 天线偏置未建模，转弯时航向被拽偏</td></tr>
+        <tr><td>回线时猛甩</td><td>偏航指令顶死在 CAN 上限</td><td>两段坡道共用长度，回线被压进 1 m</td></tr>
+        <tr><td>上坡停车</td><td>爬坡时把地面当成墙</td><td>二维激光光束朝上打到地面</td></tr>
+        <tr><td>拖车不能原地转</td><td>航向来回摆 30 秒才收敛</td><td>转向增益按裸车调，拖挂放大转动惯量</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>其中第一、二条是纯建模问题，如果不修，仿真结果全部作废。这也说明：<strong>仿真本身也要被验证</strong>，不能拿来就信。</p>
+</section>
+
+<section class="band">
+  <div class="step-head">
+    <span class="step-num">参数</span>
+    <div><h2>每个数字从哪来</h2><p>物理参数取自数据手册和 URDF，控制参数是设计选择。</p></div>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>参数</th><th>值</th><th>出处</th></tr></thead>
+      <tbody>
+        <tr><td>轮距 / 轮径</td><td class="num">0.583 / 0.165 m</td><td>Scout 2.0 URDF，已修正厂家错误</td></tr>
+        <tr><td>最高速度</td><td class="num">1.5 m/s</td><td>数据手册 6 km/h</td></tr>
+        <tr><td>最大减速度</td><td class="num">6.9 m/s²</td><td>数据手册：6 km/h 下 0.2 m 制动</td></tr>
+        <tr><td>CAN 角速度上限</td><td class="num">1.5 rad/s</td><td>CAN 协议 ±1500 mrad/s</td></tr>
+        <tr><td>GPS 天线偏置</td><td class="num">−0.30 m</td><td>URDF navsat_link</td></tr>
+        <tr><td>GPS 假定噪声</td><td class="num">0.02 m</td><td>ZED-F9P RTK 精度</td></tr>
+        <tr><td>控制周期</td><td class="num">50 ms</td><td>20 Hz，与 CAN 帧 20 ms 同量级</td></tr>
+        <tr><td>对齐距离 / 速度</td><td class="num">8 m / 0.3 m/s</td><td>足够 GPS 轨迹解出方向</td></tr>
+        <tr><td>航向增益 / 横向增益</td><td class="num">1.5 / 0.8</td><td>设计选择，仿真调定</td></tr>
+        <tr><td>转弯速率 / 阻尼</td><td class="num">1.0 / 0.6</td><td>设计选择，无阻尼时车会摆</td></tr>
+        <tr><td>失线阈值</td><td class="num">3.0 m</td><td>设计选择</td></tr>
+        <tr><td>物理步长</td><td class="num">1 ms</td><td>Gazebo 默认，DART 引擎</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer class="foot band">
+  代码：<code>scout_navigation/pose_estimator.py</code>（位姿估计）、<code>survey_grid.py</code>（任务生成）、<code>survey_navigator.py</code>（状态机与控制）、<code>launch/gazebo.launch.py</code>（仿真接线）。避障部分见另一页《避障是怎么做的》。
+</footer>
+
+</div>

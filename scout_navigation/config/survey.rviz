@@ -1,0 +1,71 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Global Options:
+    Fixed Frame: map
+    Background Color: 48; 48; 48
+    Frame Rate: 30
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Cell Size: 5
+      Plane Cell Count: 20
+      Color: 90; 90; 90
+      Enabled: true
+    - Class: rviz_default_plugins/RobotModel
+      Name: Rover
+      Description Topic:
+        Value: /robot_description
+      Enabled: true
+    - Class: rviz_default_plugins/Path
+      Name: Survey path
+      Topic:
+        Value: /survey_path
+        Durability Policy: Transient Local
+      Line Style: Billboards
+      Line Width: 0.15
+      Color: 0; 255; 255
+      Enabled: true
+    - Class: rviz_default_plugins/LaserScan
+      Name: Lidar
+      Topic:
+        Value: /scan
+      Style: Points
+      Size (Pixels): 2
+      Color Transformer: FlatColor
+      Color: 0; 200; 80
+      Decay Time: 0
+      Enabled: true
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Obstacles
+      Topic:
+        Value: /obstacle_points
+      Style: Squares
+      Size (m): 0.12
+      Color Transformer: FlatColor
+      Color: 180; 40; 220
+      Decay Time: 60
+      Enabled: true
+    - Class: rviz_default_plugins/Pose
+      Name: Estimated pose
+      Topic:
+        Value: /estimated_pose
+      Shape: Arrow
+      Shaft Length: 0.8
+      Head Length: 0.3
+      Color: 255; 60; 60
+      Enabled: true
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+  Views:
+    Current:
+      Class: rviz_default_plugins/TopDownOrtho
+      Name: Top-down
+      Scale: 12
+      X: 25
+      Y: 25
+      Angle: 0
+Window Geometry:
+  Width: 1600
+  Height: 900

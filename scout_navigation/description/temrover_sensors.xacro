@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<!-- Navigation payload mounted on the Scout: RPLIDAR S2L, ICM-20948, the GNSS antenna and a forward camera. -->
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <xacro:macro name="sensor_link" params="name parent *origin">
+        <link name="${name}_link">
+            <inertial>
+                <mass value="0.2" />
+                <inertia ixx="1e-4" ixy="0" ixz="0" iyy="1e-4" iyz="0" izz="1e-4" />
+            </inertial>
+            <visual>
+                <geometry>
+                    <cylinder length="0.06" radius="0.038" />
+                </geometry>
+            </visual>
+        </link>
+        <joint name="${name}_joint" type="fixed">
+            <parent link="${parent}" />
+            <child link="${name}_link" />
+            <xacro:insert_block name="origin" />
+        </joint>
+    </xacro:macro>
+
+    <xacro:sensor_link name="lidar" parent="base_link">
+        <origin xyz="0.34 0 0.16" rpy="0 0 0" />
+    </xacro:sensor_link>
+    <xacro:sensor_link name="imu" parent="base_link">
+        <origin xyz="0 0 0.06" rpy="0 0 0" />
+    </xacro:sensor_link>
+    <xacro:sensor_link name="navsat" parent="base_link">
+        <origin xyz="-0.30 0 0.24" rpy="0 0 0" />
+    </xacro:sensor_link>
+    <xacro:sensor_link name="camera" parent="base_link">
+        <origin xyz="0.40 0 0.10" rpy="0 0 0" />
+    </xacro:sensor_link>
+
+    <gazebo reference="lidar_link">
+        <sensor name="lidar" type="gpu_lidar">
+            <topic>scan</topic>
+            <ignition_frame_id>lidar_link</ignition_frame_id>
+            <update_rate>10</update_rate>
+            <always_on>true</always_on>
+            <lidar>
+                <scan>
+                    <horizontal>
+                        <samples>720</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-3.141593</min_angle>
+                        <max_angle>3.141593</max_angle>
+                    </horizontal>
+                </scan>
+                <range>
+                    <min>0.15</min>
+                    <max>30.0</max>
+                    <resolution>0.01</resolution>
+                </range>
+                <noise>
+                    <type>gaussian</type>
+                    <stddev>0.01</stddev>
+                </noise>
+            </lidar>
+        </sensor>
+    </gazebo>
+
+    <gazebo reference="imu_link">
+        <sensor name="imu" type="imu">
+            <topic>imu/data</topic>
+            <update_rate>100</update_rate>
+            <always_on>true</always_on>
+        </sensor>
+    </gazebo>
+
+    <gazebo reference="camera_link">
+        <sensor name="front_camera" type="camera">
+            <topic>front_camera/image</topic>
+            <update_rate>15</update_rate>
+            <always_on>true</always_on>
+            <camera>
+                <horizontal_fov>1.396</horizontal_fov>
+                <image>
+                    <width>640</width>
+                    <height>360</height>
+                </image>
+                <clip>
+                    <near>0.1</near>
+                    <far>60.0</far>
+                </clip>
+            </camera>
+        </sensor>
+    </gazebo>
+
+    <gazebo reference="navsat_link">
+        <sensor name="navsat" type="navsat">
+            <topic>gps/fix</topic>
+            <update_rate>10</update_rate>
+            <always_on>true</always_on>
+        </sensor>
+    </gazebo>
+
+</robot>

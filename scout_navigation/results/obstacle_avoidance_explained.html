@@ -1,0 +1,607 @@
+<title>TEMRover 避障原理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground: #E8EDF1;
+    --surface: #FBFDFE;
+    --surface-2: #F1F5F8;
+    --ink: #10202C;
+    --muted: #5D7284;
+    --line: #C9D6E0;
+    --accent: #0A6C8A;
+    --accent-soft: #D9EBF2;
+    --danger: #A93B26;
+    --danger-soft: #F6E0DA;
+    --good: #2C6B4E;
+    --band: 840px;
+    --wide: 1040px;
+    --cjk: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC";
+    --display: "Archivo", var(--cjk), system-ui, sans-serif;
+    --body: "IBM Plex Sans", var(--cjk), system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0D141C; --surface: #141F2A; --surface-2: #1A2733;
+      --ink: #DFE9F0; --muted: #8CA3B5; --line: #2B3C4B;
+      --accent: #52BCDB; --accent-soft: #123340;
+      --danger: #E48468; --danger-soft: #3B231C; --good: #74C296;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0D141C; --surface: #141F2A; --surface-2: #1A2733;
+    --ink: #DFE9F0; --muted: #8CA3B5; --line: #2B3C4B;
+    --accent: #52BCDB; --accent-soft: #123340;
+    --danger: #E48468; --danger-soft: #3B231C; --good: #74C296;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--body); font-size: 16.5px; line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: var(--wide); margin: 0 auto; padding: 0 24px 96px; }
+  .band { max-width: var(--band); margin-inline: auto; }
+
+  header.masthead { padding: 56px 0 34px; border-bottom: 2px solid var(--ink); margin-bottom: 40px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--display); font-weight: 700;
+    font-size: clamp(34px, 5.2vw, 52px); line-height: 1.08; letter-spacing: -0.02em;
+    margin: 0 0 16px; text-wrap: balance;
+  }
+  .standfirst { font-size: 19px; color: var(--muted); margin: 0; max-width: 60ch; }
+
+  h2 {
+    font-family: var(--display); font-weight: 600; font-size: 27px;
+    letter-spacing: -0.01em; line-height: 1.25; margin: 0 0 6px; text-wrap: balance;
+  }
+  h3 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 22px 0 8px; }
+  section { margin-bottom: 58px; }
+  .step-head {
+    display: flex; gap: 18px; align-items: baseline;
+    border-top: 1px solid var(--line); padding-top: 20px; margin-bottom: 18px;
+  }
+  .step-num {
+    font-family: var(--mono); font-weight: 500; font-size: 13px; color: var(--accent);
+    letter-spacing: 0.08em; padding-top: 6px; white-space: nowrap;
+  }
+  .step-head p { margin: 4px 0 0; color: var(--muted); font-size: 15.5px; }
+  p { margin: 0 0 14px; max-width: 68ch; }
+  strong { font-weight: 600; }
+  code {
+    font-family: var(--mono); font-size: 0.88em; background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px;
+  }
+
+  .thesis { background: var(--surface); border-left: 3px solid var(--accent); padding: 22px 26px; margin: 0 0 18px; }
+  .thesis p { margin: 0; font-size: 18px; max-width: 62ch; }
+  .thesis p + p { margin-top: 10px; }
+
+  .oneline {
+    font-size: 17.5px; font-weight: 500; padding: 14px 18px;
+    background: var(--accent-soft); border-radius: 4px; margin: 0 0 16px; max-width: 70ch;
+  }
+
+  figure { margin: 26px 0; }
+  figure svg { display: block; width: 100%; max-width: 100%; height: auto; }
+  .figwrap { background: var(--surface); border: 1px solid var(--line); padding: 20px 18px 12px; overflow-x: auto; }
+  figcaption { font-size: 14.5px; color: var(--muted); margin-top: 12px; max-width: 74ch; }
+  .svg-ink { fill: var(--ink); }
+  .svg-mut { fill: var(--muted); }
+  .svg-acc { fill: var(--accent); }
+  .svg-dan { fill: var(--danger); }
+  .svg-box { fill: var(--surface-2); stroke: var(--ink); stroke-width: 1.4; }
+  text { font-family: var(--mono); font-size: 12px; }
+
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 16px; font-size: 15px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th {
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--ink);
+  }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tablewrap { overflow-x: auto; }
+
+  .formula {
+    font-family: var(--mono); background: var(--surface); border: 1px solid var(--line);
+    padding: 14px 18px; font-size: 15px; margin: 0 0 14px; overflow-x: auto;
+  }
+  .formula .why { color: var(--muted); font-size: 13px; display: block; margin-top: 8px; font-family: var(--body); }
+
+  .why-box { border-left: 3px solid var(--line); padding: 4px 18px; margin: 16px 0; color: var(--muted); font-size: 15px; }
+  .why-box strong { color: var(--ink); }
+  .why-box p { margin: 0 0 6px; }
+
+  .note { background: var(--danger-soft); border-left: 3px solid var(--danger); padding: 16px 20px; margin: 20px 0; }
+  .note h3 { color: var(--danger); margin: 0 0 6px; }
+  .note p { margin: 0; }
+  .note p + p { margin-top: 8px; }
+
+  .twocol { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .panel { background: var(--surface); border: 1px solid var(--line); padding: 18px 20px; }
+  .panel h3 { margin: 0 0 4px; }
+  .panel p { margin: 0; font-size: 15px; color: var(--muted); }
+  .panel .val { font-family: var(--mono); font-size: 22px; font-variant-numeric: tabular-nums; color: var(--accent); display: block; margin-bottom: 2px; }
+
+  ul.plain { padding-left: 20px; margin: 0 0 14px; max-width: 68ch; }
+  ul.plain li { margin-bottom: 8px; }
+
+  footer.foot { border-top: 1px solid var(--line); padding-top: 18px; color: var(--muted); font-size: 14px; }
+  @media (max-width: 640px) { .step-head { flex-direction: column; gap: 4px; } body { font-size: 16px; } }
+</style>
+
+<div class="page">
+
+<header class="masthead band">
+  <p class="eyebrow">TEMRover · Avenue 3 · 自主导航</p>
+  <h1>避障是怎么做的</h1>
+  <p class="standfirst">从一帧激光回波，到一条车能跟着走的绕行路径。四个步骤，每个数字都有出处。</p>
+</header>
+
+<section class="band">
+  <div class="thesis">
+    <p><strong>一句话：遇到障碍物，不是"躲"，而是把绕行的那一段重新画进测线里。</strong></p>
+    <p>车始终只跟一条确定的路径。检测到障碍物后，算法生成一段新路径 —— 横向让开、贴着物体走过、拐回原线 —— 替换掉原测线的剩余部分，然后照常跟踪。</p>
+  </div>
+  <div class="why-box">
+    <p><strong>为什么不做反应式避障。</strong> 之前试过六轮：看到障碍就临时改目标点、卡住了就原地转向恢复。每轮都修好一个问题又冒出下一个 —— 目标点漂移、停下后死锁、跑飞到十几米外。根本原因是那种做法没有一条唯一定义的路径可跟。改成规划进路径之后，恢复模式就不需要存在了。</p>
+  </div>
+</section>
+
+<section>
+  <div class="band">
+    <div class="step-head">
+      <span class="step-num">总览</span>
+      <div>
+        <h2>整体流程</h2>
+        <p>先看全貌，再看每一步。</p>
+      </div>
+    </div>
+  </div>
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 1000 300" role="img" aria-label="流程：激光扫描 → 三道过滤 → 世界坐标的障碍点 → 走廊判断算出挡路距离 → 按距离分三路：小于 1.16 m 停车，小于 10 m 规划绕行并拼进任务，否则继续沿线。">
+        <defs>
+          <marker id="f-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <rect x="30" y="112" width="130" height="66" rx="3" class="svg-box"/>
+        <text x="95" y="140" text-anchor="middle" class="svg-ink">激光扫描</text>
+        <text x="95" y="160" text-anchor="middle" class="svg-mut">720 束 · 360°</text>
+
+        <line x1="160" y1="145" x2="196" y2="145" stroke="currentColor" stroke-width="1.4" marker-end="url(#f-ar)"/>
+
+        <rect x="200" y="100" width="160" height="90" rx="3" class="svg-box"/>
+        <text x="280" y="126" text-anchor="middle" class="svg-ink">三道过滤</text>
+        <text x="280" y="146" text-anchor="middle" class="svg-mut">去地面 · 去斜坡</text>
+        <text x="280" y="164" text-anchor="middle" class="svg-mut">去自己的拖车</text>
+
+        <line x1="360" y1="145" x2="396" y2="145" stroke="currentColor" stroke-width="1.4" marker-end="url(#f-ar)"/>
+
+        <rect x="400" y="112" width="140" height="66" rx="3" class="svg-box"/>
+        <text x="470" y="140" text-anchor="middle" class="svg-ink">障碍点</text>
+        <text x="470" y="160" text-anchor="middle" class="svg-mut">世界坐标</text>
+
+        <line x1="540" y1="145" x2="576" y2="145" stroke="currentColor" stroke-width="1.4" marker-end="url(#f-ar)"/>
+
+        <rect x="580" y="112" width="150" height="66" rx="3" class="svg-box"/>
+        <text x="655" y="140" text-anchor="middle" class="svg-ink">走廊判断</text>
+        <text x="655" y="160" text-anchor="middle" class="svg-mut">算出挡路距离</text>
+
+        <path d="M 730 130 C 760 130 770 58 800 58" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#f-ar)"/>
+        <path d="M 730 145 L 800 145" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#f-ar)"/>
+        <path d="M 730 160 C 760 160 770 232 800 232" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#f-ar)"/>
+
+        <text x="762" y="44" text-anchor="middle" class="svg-dan">&lt; 1.16 m</text>
+        <text x="762" y="138" text-anchor="middle" class="svg-acc">&lt; 10 m</text>
+        <text x="762" y="256" text-anchor="middle" class="svg-mut">无阻挡</text>
+
+        <rect x="804" y="34" width="166" height="48" rx="3" fill="var(--danger-soft)" stroke="var(--danger)" stroke-width="1.4"/>
+        <text x="887" y="63" text-anchor="middle" class="svg-dan">停车保持</text>
+
+        <rect x="804" y="118" width="166" height="54" rx="3" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.4"/>
+        <text x="887" y="141" text-anchor="middle" class="svg-acc">规划绕行</text>
+        <text x="887" y="160" text-anchor="middle" class="svg-acc">拼进任务列表</text>
+
+        <rect x="804" y="208" width="166" height="48" rx="3" class="svg-box"/>
+        <text x="887" y="237" text-anchor="middle" class="svg-ink">继续沿线走</text>
+
+        <text x="30" y="286" class="svg-mut">另外：每次原地转弯前，单独检查车身回转圆内有没有东西（见第 5 节）。</text>
+      </svg>
+    </div>
+    <figcaption>每个控制周期（20 Hz）都走一遍这条链。走廊判断算出的"挡路距离"决定走哪一路。</figcaption>
+  </figure>
+</section>
+
+<section>
+  <div class="band">
+    <div class="step-head">
+      <span class="step-num">STEP 01</span>
+      <div>
+        <h2>感知：先把不是障碍物的回波扔掉</h2>
+        <p>一帧 720 个回波里，真正需要绕的只占一小部分。</p>
+      </div>
+    </div>
+    <div class="oneline">三道过滤：太低的是地面，横跨视野的是斜坡，车后 8.5 m 内的是自己的拖车。</div>
+
+    <h3>第一道：高度</h3>
+    <p>车会俯仰和横滚。先用 IMU 姿态把每束光的方向修正，再算打击点的高度。低于 0.15 m 的当作地面，扔掉。</p>
+
+    <h3>第二道：角宽</h3>
+    <p>光看高度不够。<strong>车头上仰爬坡时，光束朝上打，地面的回波真的会高于传感器平面。</strong>区分的办法是看回波在扫描里占多宽：斜坡横跨整个视野，站立的物体只占一小段角度。角宽超过 90° 的那一段当作地形，扔掉。</p>
+  </div>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 1000 290" role="img" aria-label="俯视对比：左边斜坡的激光回波横跨整个扫描弧，被判为地面丢弃；右边站立物体的回波只占一小段角度，被保留。">
+        <defs>
+          <marker id="p-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <text x="30" y="26" class="svg-mut" style="letter-spacing:.08em">A · 斜坡的回波 → 扔掉</text>
+        <path d="M 180 170 L 60 70 A 155 155 0 0 1 300 70 Z" fill="var(--accent-soft)" opacity="0.5"/>
+        <text x="180" y="122" text-anchor="middle" class="svg-mut">扫描范围</text>
+        <path d="M 62 96 Q 180 40 298 96" fill="none" stroke="var(--danger)" stroke-width="4"/>
+        <text x="180" y="62" text-anchor="middle" class="svg-dan">激光回波连成一片</text>
+        <circle cx="180" cy="170" r="9" class="svg-ink"/>
+        <text x="180" y="196" text-anchor="middle" class="svg-mut">车</text>
+        <line x1="62" y1="96" x2="62" y2="132" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="3 3"/>
+        <line x1="298" y1="96" x2="298" y2="132" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="3 3"/>
+        <line x1="62" y1="142" x2="298" y2="142" stroke="currentColor" stroke-width="1.2" marker-start="url(#p-ar)" marker-end="url(#p-ar)"/>
+        <text x="180" y="230" text-anchor="middle" class="svg-dan">角宽 &gt; 90°</text>
+        <text x="180" y="262" text-anchor="middle" class="svg-mut">→ 判为地形</text>
+
+        <line x1="500" y1="40" x2="500" y2="270" stroke="var(--line)" stroke-width="1"/>
+
+        <text x="560" y="26" class="svg-mut" style="letter-spacing:.08em">B · 物体的回波 → 保留</text>
+        <path d="M 710 170 L 590 70 A 155 155 0 0 1 830 70 Z" fill="var(--accent-soft)" opacity="0.5"/>
+        <text x="710" y="122" text-anchor="middle" class="svg-mut">扫描范围</text>
+        <path d="M 686 78 Q 710 72 734 78" fill="none" stroke="var(--danger)" stroke-width="5"/>
+        <text x="710" y="60" text-anchor="middle" class="svg-dan">激光回波集中一小段</text>
+        <circle cx="710" cy="170" r="9" class="svg-ink"/>
+        <text x="710" y="196" text-anchor="middle" class="svg-mut">车</text>
+        <line x1="686" y1="78" x2="686" y2="132" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="3 3"/>
+        <line x1="734" y1="78" x2="734" y2="132" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="3 3"/>
+        <line x1="686" y1="142" x2="734" y2="142" stroke="currentColor" stroke-width="1.2" marker-start="url(#p-ar)" marker-end="url(#p-ar)"/>
+        <text x="710" y="230" text-anchor="middle" class="svg-dan">角宽 &lt; 90°</text>
+        <text x="710" y="262" text-anchor="middle" class="svg-mut">→ 判为障碍物</text>
+      </svg>
+    </div>
+    <figcaption>俯视。同样都高于地面的回波，靠"占了多宽"来区分是地形还是物体。</figcaption>
+  </figure>
+
+  <div class="band">
+    <h3>第三道：自己的拖车</h3>
+    <p>挂上 Tx/Rx 小车后，车后 7.76 m 内全是自己的东西。<strong>同时</strong>满足"在车后"和"距离小于 8.5 m"的回波才扔掉 —— 只用一条会误删车侧或远处的真实障碍物。不挂小车时这个距离设为 0，规则自动关闭。</p>
+    <h3>最后：转成世界坐标</h3>
+    <p>用 EKF 的位姿把剩下的点从传感器坐标转到世界坐标。之后所有判断都在世界坐标里做，障碍物的位置不随车转动而变。</p>
+    <div class="why-box">
+      <p><strong>一个曾经出过的问题。</strong> GNSS 天线在车后 0.30 m。车转弯时天线有横向速度，GPS 测出的运动方向就偏离车头，航向估计被拽偏最多 8°。表现是同一个圆柱在两次规划之间"转了 8°"，车左右摇摆着绕过去。修法是在滤波器里显式建模天线位置。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="band">
+    <div class="step-head">
+      <span class="step-num">STEP 02</span>
+      <div>
+        <h2>判断：什么叫"挡路"</h2>
+        <p>不是"前方有东西"，是"落在车要经过的走廊里"。</p>
+      </div>
+    </div>
+    <div class="oneline">走廊半宽 0.85 m = 半车宽 0.35 + 安全距离 0.50。走廊内的点才算挡路。</div>
+    <p>把所有障碍点投到测线坐标系里，得到两个量：沿线距离和横向偏移。横向偏移小于 0.85 m、且在车前方的点，才算挡路。</p>
+    <p>然后返回<strong>沿路径</strong>到第一个挡路点的距离，不是直线距离。绕行路径本身是弯的，沿直线量会低估。</p>
+  </div>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 1000 250" role="img" aria-label="俯视：测线两侧各 0.85 m 的走廊带；带内的障碍物算挡路并量出沿线距离，带外的障碍物被忽略。">
+        <defs>
+          <marker id="c-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"/>
+          </marker>
+        </defs>
+        <rect x="70" y="98" width="860" height="64" fill="var(--accent-soft)"/>
+        <line x1="70" y1="130" x2="930" y2="130" stroke="var(--accent)" stroke-width="2" stroke-dasharray="8 5"/>
+        <line x1="70" y1="98" x2="930" y2="98" stroke="var(--accent)" stroke-width="1"/>
+        <line x1="70" y1="162" x2="930" y2="162" stroke="var(--accent)" stroke-width="1"/>
+        <text x="78" y="90" class="svg-acc">走廊上缘  +0.85 m</text>
+        <text x="78" y="180" class="svg-acc">走廊下缘  −0.85 m</text>
+        <text x="836" y="122" class="svg-acc">测线</text>
+
+        <rect x="150" y="118" width="26" height="24" rx="2" class="svg-ink"/>
+        <text x="163" y="212" text-anchor="middle" class="svg-mut">车</text>
+
+        <circle cx="560" cy="122" r="17" fill="var(--danger)"/>
+        <text x="560" y="76" text-anchor="middle" class="svg-dan">走廊内 → 挡路</text>
+
+        <circle cx="740" cy="205" r="17" fill="var(--danger)" opacity="0.35"/>
+        <text x="740" y="240" text-anchor="middle" class="svg-mut">走廊外 → 忽略</text>
+
+        <line x1="176" y1="130" x2="543" y2="130" stroke="currentColor" stroke-width="1.4" marker-end="url(#c-ar)"/>
+        <text x="360" y="150" text-anchor="middle" class="svg-ink">挡路距离（沿线量）</text>
+      </svg>
+    </div>
+    <figcaption>走廊外的物体再近也不管，因为车不会从它那里经过。</figcaption>
+  </figure>
+</section>
+
+<section class="band">
+  <div class="step-head">
+    <span class="step-num">STEP 03</span>
+    <div>
+      <h2>决策：停还是绕</h2>
+      <p>同一个挡路距离，落在不同区间对应不同动作。</p>
+    </div>
+  </div>
+  <div class="oneline">近于 1.16 m 停车；近于 10 m 规划绕行；转弯前另查回转圆。</div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>情况</th><th>阈值</th><th>动作</th></tr></thead>
+      <tbody>
+        <tr><td>挡路距离小于 安全距离 + 刹车距离</td><td class="num">1.16 m</td><td>停车保持</td></tr>
+        <tr><td>挡路距离小于前瞻距离</td><td class="num">10.0 m</td><td>规划绕行</td></tr>
+        <tr><td>转弯前，回转圆内有东西</td><td class="num">1.08 m</td><td>暂停不转</td></tr>
+        <tr><td>偏离测线太远</td><td class="num">3.0 m</td><td>放弃该线</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="formula">
+    停车阈值 = 1.00 + v² / (2 × 6.9) = 1.00 + 0.16 = <strong>1.16 m</strong>
+    <span class="why">1.00 是停下后想留的余量，0.16 是从 1.5 m/s 刹停要走的距离。刹车距离随速度平方变，所以阈值是算出来的。</span>
+  </div>
+  <div class="why-box">
+    <p><strong>为什么不写死一个数。</strong> 最早写死 1.5 m，车以 1.5 m/s 直接撞穿了障碍物 —— 当时的减速度参数偏小，刹停需要 2.25 m。</p>
+    <p><strong>为什么有滞回。</strong> 进入停车后阈值加 0.5 m。不加的话车会在阈值边缘每个周期反复切换状态。</p>
+  </div>
+</section>
+
+<section>
+  <div class="band">
+    <div class="step-head">
+      <span class="step-num">STEP 04</span>
+      <div>
+        <h2>规划：绕行路径怎么画</h2>
+        <p>三段式：让开、贴着走、拐回来。</p>
+      </div>
+    </div>
+    <div class="oneline">量出回波的范围，算出要让多远，画三段平滑曲线，替换原测线的剩余部分。</div>
+    <p>先把前瞻范围内的挡路回波归成一组，量它们沿线占多长、横向占多宽。<strong>算法不假设障碍物的形状和尺寸</strong>，看到多宽就绕多宽。远处只有几个回波时先给一个初步偏移，靠近后看清了会同侧加宽。</p>
+  </div>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 1000 320" role="img" aria-label="俯视：绕行路径由让开坡道、保持段、回线坡道三部分组成；保持段在回波范围两端各留一段余量。">
+        <defs>
+          <marker id="d-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <line x1="60" y1="215" x2="950" y2="215" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="8 5"/>
+        <text x="900" y="236" class="svg-acc">测线</text>
+
+        <rect x="470" y="96" width="70" height="52" rx="3" fill="var(--danger)"/>
+        <text x="505" y="86" text-anchor="middle" class="svg-dan">障碍物</text>
+        <line x1="470" y1="160" x2="540" y2="160" stroke="var(--danger)" stroke-width="1.2" marker-start="url(#d-ar)" marker-end="url(#d-ar)"/>
+        <text x="505" y="178" text-anchor="middle" class="svg-dan">量到的回波范围</text>
+
+        <line x1="470" y1="184" x2="470" y2="202" stroke="var(--danger)" stroke-width="1.2" stroke-dasharray="3 3"/>
+        <line x1="540" y1="184" x2="540" y2="202" stroke="var(--danger)" stroke-width="1.2" stroke-dasharray="3 3"/>
+        <line x1="400" y1="194" x2="470" y2="194" stroke="currentColor" stroke-width="1.2" marker-start="url(#d-ar)" marker-end="url(#d-ar)"/>
+        <line x1="540" y1="194" x2="610" y2="194" stroke="currentColor" stroke-width="1.2" marker-start="url(#d-ar)" marker-end="url(#d-ar)"/>
+        <text x="435" y="210" text-anchor="middle" class="svg-mut">余量 1.0 m</text>
+        <text x="575" y="210" text-anchor="middle" class="svg-mut">余量 1.0 m</text>
+
+        <path d="M 90 215 L 190 215 C 280 215 310 130 400 130 L 610 130 C 700 130 740 215 830 215 L 950 215"
+              fill="none" stroke="var(--accent)" stroke-width="3.5"/>
+        <rect x="78" y="203" width="24" height="22" rx="2" class="svg-ink"/>
+        <text x="90" y="246" text-anchor="middle" class="svg-mut">车</text>
+
+        <line x1="190" y1="256" x2="400" y2="256" stroke="currentColor" stroke-width="1.2" marker-start="url(#d-ar)" marker-end="url(#d-ar)"/>
+        <text x="295" y="276" text-anchor="middle" class="svg-ink">① 让开坡道</text>
+        <line x1="400" y1="256" x2="610" y2="256" stroke="currentColor" stroke-width="1.2" marker-start="url(#d-ar)" marker-end="url(#d-ar)"/>
+        <text x="505" y="276" text-anchor="middle" class="svg-ink">② 保持段</text>
+        <line x1="610" y1="256" x2="830" y2="256" stroke="currentColor" stroke-width="1.2" marker-start="url(#d-ar)" marker-end="url(#d-ar)"/>
+        <text x="720" y="276" text-anchor="middle" class="svg-ink">③ 回线坡道</text>
+
+        <line x1="360" y1="130" x2="360" y2="215" stroke="var(--accent)" stroke-width="1.2" marker-start="url(#d-ar)" marker-end="url(#d-ar)"/>
+        <text x="348" y="176" text-anchor="end" class="svg-acc">让开多远</text>
+
+        <text x="295" y="300" text-anchor="middle" class="svg-mut">坡道长度按位移算，见下方公式</text>
+        <text x="720" y="300" text-anchor="middle" class="svg-mut">两段坡道各自算长度</text>
+      </svg>
+    </div>
+    <figcaption>两端坡道是三次曲线，两头斜率为零，所以车头方向不会跳。让开坡道从车当前位置和当前方向出发。</figcaption>
+  </figure>
+
+  <div class="band">
+    <h3>坡道要多长</h3>
+    <p>横向让 D 米、坡道长 L 米的三次曲线，转弯最急处的横向加速度约等于 v²·6D/L²。让它不超过允许上限 a_lat，就解出长度：</p>
+    <div class="formula">
+      L = √( 6 · D · v² / a_lat )      a_lat = 1.0 m/s²
+      <span class="why">上限由拖车能承受的横向加速度决定。巡航 1.5 m/s 时，让 1.5 m 需要 4.5 m 坡道，让 3 m 需要 6.4 m。</span>
+    </div>
+    <div class="why-box">
+      <p><strong>一个修过的 bug。</strong> 最初两段坡道共用一个长度。重规划时让开的位移很小，回线却要回整整 2.6 m，结果被压进大约 1 m 的距离里，车甩到 −88°、偏航指令顶死在 CAN 上限。改成各算各的之后，行驶中偏航峰值从 1.50 降到 0.98 rad/s。</p>
+    </div>
+
+    <h3>往左还是往右</h3>
+    <p>左绕和右绕各要让多远都能算出来。规则是<strong>选离车现在横向位置更近的那一侧</strong>，不是离测线更近的那一侧。</p>
+  </div>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 1000 250" role="img" aria-label="俯视：障碍物偏在测线一侧，左绕和右绕所需偏移不同；算法选离车当前横向位置更近的一侧，避免横穿测线。">
+        <defs>
+          <marker id="s-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"/>
+          </marker>
+        </defs>
+        <line x1="60" y1="150" x2="940" y2="150" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="8 5"/>
+        <text x="890" y="171" class="svg-acc">测线</text>
+
+        <rect x="470" y="108" width="64" height="44" rx="3" fill="var(--danger)"/>
+
+        <line x1="600" y1="60" x2="900" y2="60" stroke="var(--accent)" stroke-width="3"/>
+        <text x="610" y="50" class="svg-acc">左绕，要让到 +2.95 m ← 选这个</text>
+
+        <line x1="600" y1="214" x2="900" y2="214" stroke="var(--accent)" stroke-width="3" opacity="0.35"/>
+        <text x="610" y="236" class="svg-mut">右绕，要让到 −1.75 m</text>
+
+        <rect x="150" y="98" width="24" height="22" rx="2" class="svg-ink"/>
+        <line x1="162" y1="120" x2="162" y2="150" stroke="currentColor" stroke-width="1.2" marker-start="url(#s-ar)" marker-end="url(#s-ar)"/>
+        <text x="180" y="112" class="svg-ink">车现在在 +1.0 m</text>
+
+        <text x="150" y="200" class="svg-mut">从 +1.0 到 +2.95 要动 1.95 m；到 −1.75 要动 2.75 m，还得横穿测线</text>
+      </svg>
+    </div>
+    <figcaption>以车现在的位置为基准选边，正在绕行途中的车不会因为看到新物体就掉头穿过测线。那样会画出 S 形，把拖车甩起来。</figcaption>
+  </figure>
+</section>
+
+<section class="band">
+  <div class="step-head">
+    <span class="step-num">STEP 05</span>
+    <div>
+      <h2>转弯前：查回转圆</h2>
+      <p>原地转向和直行，碰撞几何完全不同。</p>
+    </div>
+  </div>
+  <div class="oneline">直行看前方走廊；原地转向看以车为心、半径 1.08 m 的圆。圆内有东西就暂停不转。</div>
+  <p>半径 1.08 m = 车身转动扫过的半对角线 0.58 + 安全距离 0.50。</p>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 1000 250" role="img" aria-label="俯视：车在测线终点原地转向时扫过半径 1.08 m 的圆；测线外 0.90 m 处的细杆落在圆内，转弯被暂停。">
+        <line x1="60" y1="150" x2="700" y2="150" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="8 5"/>
+        <text x="90" y="140" class="svg-acc">这条测线</text>
+        <line x1="700" y1="150" x2="700" y2="40" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="8 5"/>
+        <text x="712" y="60" class="svg-acc">下一条测线</text>
+
+        <circle cx="700" cy="150" r="78" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <rect x="686" y="138" width="28" height="24" rx="2" class="svg-ink"/>
+        <line x1="700" y1="150" x2="778" y2="150" stroke="currentColor" stroke-width="1.2"/>
+        <text x="740" y="142" text-anchor="middle" class="svg-ink">1.08 m</text>
+        <text x="620" y="240" text-anchor="middle" class="svg-mut">车身回转圆</text>
+
+        <circle cx="700" cy="215" r="6" fill="var(--danger)"/>
+        <text x="716" y="219" class="svg-dan">细杆，离车 0.90 m → 在圆内 → 暂停</text>
+
+        <circle cx="860" cy="150" r="17" fill="var(--danger)" opacity="0.35"/>
+        <text x="884" y="154" class="svg-mut">在圆外 → 可以转</text>
+      </svg>
+    </div>
+    <figcaption>这根细杆在行驶走廊外，直行经过时不绕它；但在回转圆内，所以转弯必须等它移开。两个判据对应两种运动。</figcaption>
+  </figure>
+
+  <div class="note">
+    <h3>演示时会看到的现象</h3>
+    <p>测试场地里第一个转角旁 0.95 m 处放了一根细杆，<strong>就是为了触发这个暂停</strong>。录制脚本会在车停稳 3 秒后把它删掉，模拟"路人走开"，车随即恢复转弯。</p>
+    <p>如果只启动仿真、不跑录制脚本，没有东西会移走它，<strong>车会一直停在第一个转角</strong>。这不是故障。不想演示这一项，把 <code>config/obstacles.yaml</code> 里 <code>corner_swing</code> 那一段删掉。</p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="step-head">
+    <span class="step-num">验证</span>
+    <div>
+      <h2>七个障碍物的实测结果</h2>
+      <p>三条测线、三种形状、不同偏置，全部绕开。</p>
+    </div>
+  </div>
+  <div class="twocol" style="margin-bottom:20px">
+    <div class="panel">
+      <span class="val">+0.31 m</span>
+      <h3>最小车身间距</h3>
+      <p>出现在转角细杆（停车工况）。绕行工况下最小 +0.50 m。</p>
+    </div>
+    <div class="panel">
+      <span class="val">0.98 rad/s</span>
+      <h3>行驶中偏航峰值</h3>
+      <p>低于 CAN 上限 1.50。修坡道 bug 之前顶死在 1.50。</p>
+    </div>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>障碍物</th><th>形状与位置</th><th>算法选的方向</th><th>车身间距</th></tr></thead>
+      <tbody>
+        <tr><td>line1_near_centre</td><td>圆柱，偏线右 0.3 m</td><td>右绕 1.42 m</td><td class="num">+1.10 m</td></tr>
+        <tr><td>line1_second</td><td>圆柱，偏线左 0.4 m</td><td>左绕 1.38 m</td><td class="num">+0.77 m</td></tr>
+        <tr><td>line1_wide</td><td>2 m 宽箱，偏右 0.6 m</td><td>左绕 3.13 m（车当时在左侧）</td><td class="num">+0.86 m</td></tr>
+        <tr><td>corner_swing</td><td>细杆，转角旁 0.95 m</td><td>暂停，移开后恢复</td><td class="num">+0.31 m</td></tr>
+        <tr><td>line2_centre</td><td>2 m 宽箱，正压线</td><td>右绕 2.16 m</td><td class="num">+0.51 m</td></tr>
+        <tr><td>line3_offset</td><td>圆柱，偏右 0.5 m</td><td>右绕 1.35 m</td><td class="num">+0.50 m</td></tr>
+        <tr><td>line3_wide</td><td>2 m 宽箱，正压线</td><td>右绕 2.19 m</td><td class="num">+0.54 m</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>每个物体算法选的方向都和按几何预先算出来的一致。正压线的宽箱左右对称，由车当时的横向位置决定方向。</p>
+</section>
+
+<section class="band">
+  <div class="step-head">
+    <span class="step-num">参数</span>
+    <div>
+      <h2>每个数字从哪来</h2>
+      <p>全部在 <code>config/survey.yaml</code>，没有写死在代码里。</p>
+    </div>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>参数</th><th>值</th><th>出处</th></tr></thead>
+      <tbody>
+        <tr><td>半车宽 <code>rover_half_width</code></td><td class="num">0.35 m</td><td>Scout 2.0 车体 0.925 × 0.70 m</td></tr>
+        <tr><td>回转半径 <code>swing_radius</code></td><td class="num">0.58 m</td><td>同一车体的半对角线</td></tr>
+        <tr><td>安全距离 <code>obstacle_clearance</code></td><td class="num">0.50 m</td><td>设计选择</td></tr>
+        <tr><td>停车余量 <code>obstacle_standoff</code></td><td class="num">1.00 m</td><td>设计选择</td></tr>
+        <tr><td>滞回 <code>obstacle_hysteresis</code></td><td class="num">0.50 m</td><td>防止阈值边缘反复切换</td></tr>
+        <tr><td>前瞻 <code>detour_lookahead</code></td><td class="num">10.0 m</td><td>须大于最长坡道 6.5 m + 余量</td></tr>
+        <tr><td>横向加速度 <code>detour_lateral_acceleration</code></td><td class="num">1.0 m/s²</td><td>拖车能承受的上限</td></tr>
+        <tr><td>减速度 <code>max_deceleration</code></td><td class="num">6.9 m/s²</td><td>数据手册：6 km/h 下 0.2 m 制动</td></tr>
+        <tr><td>巡航速度 <code>cruise_speed</code></td><td class="num">1.5 m/s</td><td>数据手册最高速 6 km/h</td></tr>
+        <tr><td>雷达高度 <code>lidar_height</code></td><td class="num">0.395 m</td><td>URDF：车体 0.235 + 支架 0.16</td></tr>
+        <tr><td>地面门限 <code>minimum_obstacle_height</code></td><td class="num">0.15 m</td><td>低于此高度视为地面</td></tr>
+        <tr><td>分段门限 <code>range_step_threshold</code></td><td class="num">0.30 m</td><td>相邻光束距离跳变</td></tr>
+        <tr><td>角宽门限 <code>maximum_object_angle</code></td><td class="num">90°</td><td>墙近处最多占四分之一圈</td></tr>
+        <tr><td>拖挂长度 <code>towed_length</code></td><td class="num">8.5 m</td><td>Rx 小车后轮在车后 7.76 m</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="band">
+  <div class="step-head">
+    <span class="step-num">边界</span>
+    <div>
+      <h2>做不到什么</h2>
+      <p>讲清楚这部分，比讲能做什么更重要。</p>
+    </div>
+  </div>
+  <ul class="plain">
+    <li><strong>看不见 0.395 m 以下的东西。</strong> 二维激光只扫一个平面，石头、坑、矮树桩都是盲区。换传感器才能解决。</li>
+    <li><strong>陡坡仍可能被当成墙。</strong> 角宽门限能滤掉大部分地形，但足够陡又足够窄的坡会漏过。失效结果是停车，可以接受。</li>
+    <li><strong>前瞻 10 m 偏保守。</strong> 最坏情况只需 7.5 m，降到 8 m 是安全的。但不能把前瞻改得比坡道还短，那样绕行会被拒绝，车直接停下。</li>
+    <li><strong>挂拖车时不能原地转向。</strong> 8 m 拖挂让转向严重欠阻尼，航向来回摆动约 30 秒才收敛。带负载需要改用大半径弧线掉头，尚未接入。</li>
+    <li><strong>绕行会占用线距。</strong> 2 m 宽的物体可能要让 3.1 m，而线距只有 5 m。相邻测线上位置接近的障碍物可能互相干扰。</li>
+  </ul>
+</section>
+
+<footer class="foot band">
+  代码：<code>scout_navigation/obstacle_monitor.py</code>（感知）、<code>detour.py</code>（路径生成）、<code>survey_navigator.py</code>（走廊判断与状态机）。完整实验记录见 <code>research_log.md</code>。
+</footer>
+
+</div>

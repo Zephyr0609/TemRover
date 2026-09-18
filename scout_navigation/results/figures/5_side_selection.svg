@@ -1,0 +1,16 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 250' width='1000' height='250' font-family='Helvetica, Arial, sans-serif' font-size='13'>
+<defs><marker id='ar' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='7' markerHeight='7' orient='auto-start-reverse'><polygon points='0,1 10,5 0,9' fill='#10202C'/></marker></defs>
+<rect width='1000' height='250' fill='white'/>
+<line x1='60' y1='150' x2='940' y2='150' stroke='#0A6C8A' stroke-width='1.6' stroke-dasharray='8 5'/>
+<text x='890' y='171' text-anchor='middle' fill='#0A6C8A' font-size='12' font-weight='normal'>survey line</text>
+<rect x='470' y='108' width='64' height='44' rx='3' fill='#A93B26'/>
+<line x1='600' y1='60' x2='900' y2='60' stroke='#0A6C8A' stroke-width='3'/>
+<text x='610' y='50' text-anchor='start' fill='#0A6C8A' font-size='12' font-weight='bold'>left detour needs +2.95 m  ← chosen</text>
+<line x1='600' y1='214' x2='900' y2='214' stroke='#0A6C8A' stroke-width='3' opacity='0.35'/>
+<text x='610' y='236' text-anchor='start' fill='#5D7284' font-size='12' font-weight='normal'>right detour needs −1.75 m</text>
+<rect x='150' y='98' width='24' height='22' rx='2' fill='#10202C'/>
+<line x1='162' y1='120' x2='162' y2='150' stroke='#10202C' stroke-width='1.2' marker-start='url(#ar)' marker-end='url(#ar)'/>
+<text x='180' y='112' text-anchor='start' fill='#10202C' font-size='12' font-weight='normal'>rover currently at +1.0 m</text>
+<text x='150' y='200' text-anchor='start' fill='#5D7284' font-size='12' font-weight='normal'>from +1.0: left needs 1.95 m of movement, right needs 2.75 m and crosses the line</text>
+<text x='150' y='222' text-anchor='start' fill='#10202C' font-size='12' font-weight='bold'>rule: pick the side nearer to where the rover already is</text>
+</svg>

@@ -1,0 +1,297 @@
+<title>RTK 基站与移动站接线图</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  :root { --paper:#F0F2EF; --surface:#FFFFFF; --edge:#D8DDD7; --ink:#151B19; --muted:#5D6B65;
+          --faint:#8A968F; --accent:#C8501B; --ok:#16665E; --note-wash:#EDF0F4; --note:#3B5068; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+      --paper:#0E1312; --surface:#171E1C; --edge:#2A3532; --ink:#E5EAE7; --muted:#9BA8A2;
+      --faint:#6C7A74; --accent:#F0793C; --ok:#63C4B5; --note-wash:#16202B; --note:#9CBBD8; } }
+  :root[data-theme="dark"] { --paper:#0E1312; --surface:#171E1C; --edge:#2A3532; --ink:#E5EAE7;
+      --muted:#9BA8A2; --faint:#6C7A74; --accent:#F0793C; --ok:#63C4B5;
+      --note-wash:#16202B; --note:#9CBBD8; }
+
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+         font-family:"Noto Sans SC","Archivo",system-ui,sans-serif; font-size:15px; line-height:1.68; }
+  main { max-width:900px; margin:0 auto; padding:52px 26px 90px; display:flex;
+         flex-direction:column; gap:42px; }
+  h1,h2 { font-family:"Archivo","Noto Sans SC",sans-serif; margin:0; text-wrap:balance; }
+  h1 { font-size:31px; font-weight:700; letter-spacing:-0.015em; }
+  h2 { font-size:13px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent); }
+  p { margin:0; } code,.mono { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:0.88em; }
+  header { display:flex; flex-direction:column; gap:9px; border-bottom:3px solid var(--ink); padding-bottom:20px; }
+  .kicker { font-family:"Archivo",sans-serif; font-size:12px; letter-spacing:0.16em;
+            text-transform:uppercase; color:var(--muted); }
+  .lede { color:var(--muted); max-width:62ch; }
+  section { display:flex; flex-direction:column; gap:16px; }
+  figure { margin:0; background:var(--surface); border:1px solid var(--edge); border-radius:3px; padding:20px; }
+  figure svg { display:block; width:100%; max-width:100%; height:auto; }
+  figcaption { margin-top:12px; font-size:13px; color:var(--muted); }
+  .note { background:var(--note-wash); border-left:3px solid var(--note); border-radius:3px;
+          padding:14px 18px; display:flex; flex-direction:column; gap:5px; }
+  .note .what { font-weight:500; color:var(--note); }
+  .note .why { font-size:13.5px; color:var(--muted); }
+  .scroller { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:14px; min-width:440px; }
+  th,td { text-align:left; padding:8px 12px; border-bottom:1px solid var(--edge); }
+  th { font-family:"Archivo",sans-serif; font-size:11.5px; letter-spacing:0.09em;
+       text-transform:uppercase; color:var(--faint); font-weight:600; }
+  tbody tr:last-child td { border-bottom:none; }
+  pre { background:var(--surface); border:1px solid var(--edge); border-radius:3px; padding:16px 18px;
+        overflow-x:auto; font-family:"JetBrains Mono",monospace; font-size:12.5px; line-height:1.6;
+        white-space:pre-wrap; margin:0; }
+</style>
+
+<main>
+  <header>
+    <div class="kicker">TEMRover · 野外无网络 RTK 方案</div>
+    <h1>RTK 基站与移动站接线图</h1>
+    <p class="lede">为什么需要基站、数据怎么从卫星走到导航节点，以及换成 Leica GS18 当基站时哪些环节会变。</p>
+  </header>
+
+  <section>
+    <h2>一、为什么需要基站</h2>
+    <figure>
+      <svg viewBox="0 0 760 320" role="img"
+           aria-label="卫星信号穿过大气层产生延迟，基站算出误差并广播，移动站扣掉同样的误差">
+        <defs>
+          <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
+                  orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
+        </defs>
+        <g fill="none" stroke="currentColor" stroke-width="1.3">
+          <circle cx="200" cy="34" r="9"/><circle cx="380" cy="24" r="9"/><circle cx="560" cy="38" r="9"/>
+          <path d="M186 28 L172 22 M214 28 L228 22"/>
+          <path d="M366 18 L352 12 M394 18 L408 12"/>
+          <path d="M546 32 L532 26 M574 32 L588 26"/>
+        </g>
+        <line x1="40" y1="112" x2="720" y2="112" stroke="currentColor" stroke-width="1"
+              stroke-dasharray="5 4" opacity="0.5"/>
+        <text x="46" y="105" font-family="Archivo, sans-serif" font-size="11.5" fill="currentColor"
+              opacity="0.7">电离层 / 对流层 —— 信号在这里被延迟，两台接收机受到的延迟几乎相同</text>
+
+        <g fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3" opacity="0.55">
+          <path d="M197 45 L182 205"/><path d="M377 34 L192 205"/><path d="M557 47 L204 205"/>
+          <path d="M203 45 L556 205"/><path d="M383 34 L566 205"/><path d="M563 47 L578 205"/>
+        </g>
+
+        <g fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M192 205 L192 250 M180 250 L204 250"/>
+          <rect x="150" y="252" width="86" height="34" rx="3"/>
+          <path d="M568 205 L568 250 M556 250 L580 250"/>
+          <rect x="526" y="252" width="86" height="34" rx="3"/>
+        </g>
+        <g font-family="Archivo, sans-serif" font-size="12" fill="currentColor">
+          <text x="193" y="273" text-anchor="middle" font-weight="600">基站</text>
+          <text x="569" y="273" text-anchor="middle" font-weight="600">移动站（车）</text>
+          <text x="193" y="305" text-anchor="middle" font-size="11.5">架在原地不动</text>
+          <text x="569" y="305" text-anchor="middle" font-size="11.5">跟着车走</text>
+        </g>
+
+        <g stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#tip)">
+          <path d="M240 269 L520 269"/>
+        </g>
+        <text x="380" y="262" text-anchor="middle" font-family="Archivo, sans-serif"
+              font-size="12.5" font-weight="600" fill="var(--accent)">RTCM3 改正数据</text>
+      </svg>
+      <figcaption><strong>基站知道自己站在哪。</strong>它把「卫星算出来的位置」和「自己实际的位置」一比，
+        差值就是这一刻的误差。把误差播给移动站，移动站扣掉同一份误差 —— 共同的大气延迟被抵消，
+        剩下厘米级精度。这就是 RTK 的全部原理。</figcaption>
+    </figure>
+
+    <div class="note">
+      <div class="what">关键：基站不需要架在已知控制点上</div>
+      <div class="why">我们的指标是「沿测线跟踪误差 ≤ 线距的 10%」，这是<strong>相对</strong>精度。
+        基站开机自己平均 5–10 分钟（survey-in）定出一个 2.5 m 级的位置就够用 ——
+        整个测量网格会整体平移 2.5 m，但线与线之间仍是厘米级。
+        只有当地球物理需要绝对配准做图时，才需要 Miryam 用 GS18 把基站点精测一次。</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>二、方案 A：两台 F9P + 2.4 GHz 电台</h2>
+    <figure>
+      <svg viewBox="0 0 820 300" role="img"
+           aria-label="基站 F9P 输出 RTCM 经电台发射，车载 F9P 接收后经 USB 送入 LattePanda 的 ROS 驱动">
+        <g fill="none" stroke="currentColor" stroke-width="1.4">
+          <rect x="20" y="70" width="300" height="180" rx="4" stroke-dasharray="5 4" opacity="0.6"/>
+          <rect x="440" y="70" width="360" height="180" rx="4" stroke-dasharray="5 4" opacity="0.6"/>
+          <path d="M92 100 L92 128 M80 100 L104 100"/>
+          <rect x="46" y="130" width="92" height="30" rx="3"/>
+          <rect x="46" y="184" width="92" height="30" rx="3"/>
+          <path d="M232 118 L232 146"/><path d="M220 118 L244 118"/>
+          <rect x="192" y="148" width="80" height="30" rx="3"/>
+          <path d="M512 100 L512 128 M500 100 L524 100"/>
+          <rect x="466" y="130" width="92" height="30" rx="3"/>
+          <path d="M628 118 L628 146"/><path d="M616 118 L640 118"/>
+          <rect x="596" y="148" width="80" height="30" rx="3"/>
+          <rect x="466" y="196" width="210" height="34" rx="3"/>
+        </g>
+        <g font-family="Archivo, sans-serif" font-size="11.5" fill="currentColor">
+          <text x="30" y="60" font-size="12.5" font-weight="600">基站（测区边缘，静止）</text>
+          <text x="450" y="60" font-size="12.5" font-weight="600">移动站（Scout 2.0 车上）</text>
+          <text x="92" y="149" text-anchor="middle">GNSS 天线</text>
+          <text x="92" y="203" text-anchor="middle">F9P 基站板</text>
+          <text x="232" y="167" text-anchor="middle">电台 发射</text>
+          <text x="512" y="149" text-anchor="middle">GNSS 天线</text>
+          <text x="628" y="167" text-anchor="middle">电台 接收</text>
+          <text x="571" y="217" text-anchor="middle">F9P 移动站板</text>
+        </g>
+        <g stroke="currentColor" stroke-width="1.5" fill="none" marker-end="url(#tip)">
+          <path d="M92 160 L92 182"/>
+          <path d="M138 199 L190 170"/>
+          <path d="M628 180 L628 194 L680 194"/>
+          <path d="M512 160 L512 194"/>
+        </g>
+        <g stroke="var(--accent)" stroke-width="2.2" fill="none" marker-end="url(#tip)">
+          <path d="M274 163 L594 163"/>
+        </g>
+        <text x="434" y="155" text-anchor="middle" font-family="Archivo, sans-serif" font-size="12"
+              font-weight="600" fill="var(--accent)">RTCM3 · 2.4 GHz ISM · 免牌照</text>
+        <g fill="none" stroke="currentColor" stroke-width="1.5" marker-end="url(#tip)">
+          <path d="M571 232 L571 262 L700 262"/>
+        </g>
+        <g fill="none" stroke="currentColor" stroke-width="1.4">
+          <rect x="704" y="246" width="96" height="32" rx="3"/>
+        </g>
+        <g font-family="Archivo, sans-serif" font-size="11.5" fill="currentColor">
+          <text x="500" y="256" font-size="11">USB · 位置</text>
+          <text x="752" y="266" text-anchor="middle">LattePanda</text>
+          <text x="138" y="196" font-size="10.5" opacity="0.75">串口</text>
+          <text x="648" y="190" font-size="10.5" opacity="0.75">串口 UART2</text>
+        </g>
+      </svg>
+      <figcaption>基站板算出 RTCM3 改正数据，经串口送进电台发射；车上的电台收到后从
+        <span class="mono">UART2</span> 灌进移动站板；移动站板把改正数据和自己观测到的卫星信号合并，
+        解算出厘米级位置，再经 USB 交给 LattePanda。</figcaption>
+    </figure>
+
+    <div class="scroller">
+      <table>
+        <thead><tr><th>环节</th><th>用什么</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>基站 / 移动站板</td><td class="mono">simpleRTK2B Budget（ZED-F9P）</td>
+            <td>配置写入板载 flash，断电重启保持，现场不需要电脑</td></tr>
+          <tr><td>电台</td><td class="mono">Radio Module MR</td>
+            <td>2.4 GHz ISM，8 dBm，视距 1.2 km。50×50 m 测区最远约 70 m</td></tr>
+          <tr><td>天线</td><td class="mono">u-blox ANN-MB-00</td><td>双频 L1/L2，IP67，5 m 线</td></tr>
+          <tr><td>LattePanda 侧</td><td class="mono">ros-humble-ublox</td>
+            <td>apt 直接装，发布 <span class="mono">/gps/fix</span>，导航节点不用改</td></tr>
+          <tr><td>整套 SKU</td><td class="mono">AS-STARTKIT-MR-L1L2-NH-01</td><td>€499</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>三、方案 B：Leica GS18 当基站</h2>
+    <figure>
+      <svg viewBox="0 0 820 250" role="img"
+           aria-label="GS18 作为基站输出 RTCM 到电台，车上部分完全不变">
+        <g fill="none" stroke="currentColor" stroke-width="1.4">
+          <rect x="20" y="60" width="300" height="150" rx="4" stroke-dasharray="5 4" opacity="0.6"/>
+          <rect x="440" y="60" width="360" height="150" rx="4" stroke-dasharray="5 4" opacity="0.6"/>
+          <circle cx="96" cy="112" r="24"/>
+          <path d="M96 136 L96 176 M74 176 L118 176 M96 136 L78 176 M96 136 L114 176"/>
+          <path d="M232 104 L232 130"/><path d="M220 104 L244 104"/>
+          <rect x="192" y="132" width="80" height="30" rx="3"/>
+          <path d="M512 88 L512 114 M500 88 L524 88"/>
+          <rect x="466" y="116" width="92" height="30" rx="3"/>
+          <path d="M628 104 L628 130"/><path d="M616 104 L640 104"/>
+          <rect x="596" y="132" width="80" height="30" rx="3"/>
+          <rect x="466" y="170" width="210" height="32" rx="3"/>
+        </g>
+        <g font-family="Archivo, sans-serif" font-size="11.5" fill="currentColor">
+          <text x="30" y="50" font-size="12.5" font-weight="600">基站 = Leica GS18（三脚架）</text>
+          <text x="450" y="50" font-size="12.5" font-weight="600">移动站 —— 与方案 A 完全相同</text>
+          <text x="96" y="117" text-anchor="middle" font-size="10.5">GS18</text>
+          <text x="232" y="151" text-anchor="middle">电台 发射</text>
+          <text x="512" y="135" text-anchor="middle">GNSS 天线</text>
+          <text x="628" y="151" text-anchor="middle">电台 接收</text>
+          <text x="571" y="190" text-anchor="middle">F9P 移动站板</text>
+        </g>
+        <g stroke="currentColor" stroke-width="1.5" fill="none" marker-end="url(#tip)">
+          <path d="M124 130 L190 147"/>
+          <path d="M628 164 L628 178 L680 178"/>
+          <path d="M512 146 L512 178"/>
+        </g>
+        <text x="146" y="128" font-family="Archivo, sans-serif" font-size="10.5"
+              fill="currentColor" opacity="0.75">串口 / 蓝牙</text>
+        <g stroke="var(--accent)" stroke-width="2.2" fill="none" marker-end="url(#tip)">
+          <path d="M274 147 L594 147"/>
+        </g>
+        <text x="434" y="139" text-anchor="middle" font-family="Archivo, sans-serif" font-size="12"
+              font-weight="600" fill="var(--accent)">RTCM3 · 同一条电台链路</text>
+      </svg>
+      <figcaption><strong>只有基站那一半换掉，车上完全不动。</strong>
+        GS18 输出 RTCM3，仍然要经过一个电台发射出去 ——
+        所以省下的是一块 F9P 板加一根天线，<strong>电台还是要两个</strong>。</figcaption>
+    </figure>
+
+    <div class="note">
+      <div class="what">这条路不是即插即用，有一个必须确认的点</div>
+      <div class="why">GS18 自带的内置电台通常工作在 UHF 403–473 MHz，
+        和 ArduSimple 的 2.4 GHz 模块<strong>互不兼容</strong>。可行的接法是让 GS18
+        从串口或蓝牙输出 RTCM3，再接一个 2.4 GHz 发射模块 —— 需要向 Miryam 确认
+        GS18 是否开放这个输出口。UHF 在澳洲还涉及频率许可，不建议走那条路。</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>四、两个方案对比</h2>
+    <div class="scroller">
+      <table>
+        <thead><tr><th></th><th>方案 A：两台 F9P</th><th>方案 B：GS18 当基站</th></tr></thead>
+        <tbody>
+          <tr><td>需要采购</td><td>整套 €499</td><td>单机 €211 + 一对电台（价格待查）</td></tr>
+          <tr><td>基站架设</td><td>板 + 天线 + 充电宝，需自配支架</td><td>GS18 三脚架，测绘那边已有</td></tr>
+          <tr><td>基站绝对精度</td><td>survey-in 约 2.5 m</td><td>测量级，可直接用于绝对配准</td></tr>
+          <tr><td>待确认</td><td>澳洲发货、运费</td><td>GS18 能否串口输出 RTCM3、设备可否长期借用</td></tr>
+          <tr><td>车上部分</td><td colspan="2">完全相同 —— F9P + 天线 + 电台接收 + LattePanda</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>五、如果要用 AI 生成配图</h2>
+    <p style="color:var(--muted);font-size:14px">技术接线图交给图像模型通常会出现文字乱码、连线接错、协议名写错。
+      下面这段 prompt 已经把关键约束写死，但生成后<strong>必须逐项核对</strong>：箭头方向、频段数字、
+      RTCM 只从基站流向车、车上没有发射机。</p>
+    <pre>A clean technical block diagram, flat vector style, white background, thin dark
+outlines, no photorealism, no 3D, minimal colour with a single orange accent for
+the wireless link.
+
+Layout: two dashed-outline groups side by side.
+
+LEFT GROUP, labelled "BASE STATION (stationary, edge of survey area)":
+  - a GNSS patch antenna on a short mast at the top
+  - below it a small circuit board labelled "u-blox ZED-F9P"
+  - a solid arrow from the antenna down into the board
+  - to the right of the board, a radio module labelled "2.4 GHz radio,
+    TRANSMIT" with a short whip antenna
+  - a solid arrow from the board to the radio labelled "RTCM3 over serial"
+
+RIGHT GROUP, labelled "ROVER (on the Scout 2.0)":
+  - a GNSS patch antenna on a short mast
+  - a radio module labelled "2.4 GHz radio, RECEIVE ONLY" with a whip antenna
+  - a circuit board labelled "u-blox ZED-F9P"
+  - a small computer box labelled "LattePanda"
+  - solid arrows: antenna into the board; radio into the board labelled
+    "RTCM3 into UART2"; board into the computer labelled "position over USB"
+
+BETWEEN THE GROUPS: one thick orange arrow pointing LEFT TO RIGHT ONLY,
+from the transmit radio to the receive radio, labelled
+"RTCM3 corrections, 2.4 GHz ISM, licence free". Draw two or three concentric
+radio arcs at the transmitting end only.
+
+Above both groups: three small satellite icons with thin dashed lines going
+down to BOTH antennas, labelled "same satellites, same atmospheric delay".
+
+Hard constraints: the wireless arrow must point only from base to rover.
+The rover must have no transmitter. No internet, cloud, phone or cell tower
+anywhere in the image. All text in English, spelled exactly as given.</pre>
+  </section>
+</main>

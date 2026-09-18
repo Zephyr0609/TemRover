@@ -1,0 +1,38 @@
+# Test obstacles on the survey lines. half_size is the footprint used to score clearance.
+# bystander objects are removed once the rover has waited beside them, to prove a hold releases.
+obstacles:
+  - name: line1_near_centre
+    model: obstacle.sdf
+    pose: [14.0, 0.3, 0.6]
+    half_size: [0.4, 0.4]
+
+  - name: line1_second
+    model: obstacle.sdf
+    pose: [30.0, -0.4, 0.6]
+    half_size: [0.4, 0.4]
+
+  - name: line1_wide
+    model: box_obstacle.sdf
+    pose: [42.0, 0.6, 0.6]
+    half_size: [0.3, 1.0]
+
+  - name: corner_swing
+    model: pole_obstacle.sdf
+    pose: [50.0, -0.95, 0.75]
+    half_size: [0.05, 0.05]
+    bystander: true
+
+  - name: line2_centre
+    model: box_obstacle.sdf
+    pose: [25.0, 5.0, 0.6]
+    half_size: [0.3, 1.0]
+
+  - name: line3_offset
+    model: obstacle.sdf
+    pose: [12.0, 10.5, 0.6]
+    half_size: [0.4, 0.4]
+
+  - name: line3_wide
+    model: box_obstacle.sdf
+    pose: [32.0, 10.0, 0.6]
+    half_size: [0.3, 1.0]
