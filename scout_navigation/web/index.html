@@ -124,10 +124,12 @@ topic('/scan', 'sensor_msgs/LaserScan', 200).subscribe(m => {
   state.scan = [];
   if (!state.pose) return;
   const c = Math.cos(state.pose.yaw), s = Math.sin(state.pose.yaw);
+  // The navigator owns the mounting angle; the page takes it from the status message
+  const mounting = (state.status && state.status.lidar_yaw) || 0;
   for (let i = 0; i < m.ranges.length; i += 3) {
     const r = m.ranges[i];
     if (!(r > m.range_min && r < 12.0)) continue;
-    const a = m.angle_min + i * m.angle_increment;
+    const a = m.angle_min + i * m.angle_increment + mounting;
     const lx = LIDAR_OFFSET + r * Math.cos(a), ly = r * Math.sin(a);
     state.scan.push([state.pose.x + c * lx - s * ly, state.pose.y + s * lx + c * ly]);
   }

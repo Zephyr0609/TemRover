@@ -29,7 +29,7 @@ PARAMETERS = [
     ('obstacle_standoff', 0.5), ('obstacle_hysteresis', 0.1), ('obstacle_clearance', 0.15),
     ('hold_hysteresis', 0.5),
     ('rover_half_width', 0.35), ('swing_radius', 0.58), ('lidar_offset', 0.34),
-    ('lidar_height', 0.395), ('minimum_obstacle_height', 0.15),
+    ('lidar_height', 0.395), ('lidar_yaw', 0.0), ('minimum_obstacle_height', 0.15),
     ('range_step_threshold', 0.3), ('maximum_object_angle', 1.57),
     ('detour_lookahead', 10.0), ('detour_lateral_acceleration', 1.0),
     ('detour_segment_length', 1.0),
@@ -152,6 +152,7 @@ class SurveyNavigator(Node):
             'extent': [self.settings['grid_width'], self.settings['grid_length']],
             'corridor': self.settings['rover_half_width'] + self.settings['obstacle_clearance'],
             'towed_length': self.settings['towed_length'],
+            'lidar_yaw': self.settings['lidar_yaw'],
             'goal': self.goal(),
             # Two spot turns separate consecutive lines
             'line': 1 + sum(step[0] == 'turn' for step in self.mission[:self.step_index]) // 2,
@@ -239,7 +240,7 @@ class SurveyNavigator(Node):
         points = scan_points(message, self.attitude, self.settings['lidar_height'],
                              self.settings['minimum_obstacle_height'],
                              self.settings['range_step_threshold'],
-                             self.settings['maximum_object_angle'])
+                             self.settings['maximum_object_angle'], self.settings['lidar_yaw'])
         points = without_towed_train(points, self.settings['lidar_offset'],
                                      self.settings['towed_length'])
         self.obstacle_points = to_world(points, self.estimator.position, self.estimator.heading,

@@ -11,7 +11,7 @@
     turn_radius: 0.0
 
     # Scout 2.0 datasheet: 6 km/h top speed, 0.2 m minimum braking distance from 6 km/h
-    cruise_speed: 1.5
+    cruise_speed: 0.9
     max_deceleration: 6.9
     # CAN motion frame caps both channels at +/-1500 units
     max_angular_velocity: 1.5
@@ -29,6 +29,8 @@
     # RPLIDAR S2L on its mast: base_link sits 0.235 m up, the mast adds 0.16 m, 0.34 m forward
     lidar_height: 0.395
     lidar_offset: 0.34
+    # Where the scan's zero bearing points, from the rover's forward direction: pi if it faces aft
+    lidar_yaw: 0.0
     # A wall fills up to a quarter turn of the scan up close; a slope fills half or more
     maximum_object_angle: 1.57
     # Scout 2.0 body 0.925 x 0.70 m: half width, and half diagonal swept by a spot turn

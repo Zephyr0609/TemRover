@@ -2,10 +2,14 @@ import numpy as np
 
 
 def scan_points(scan, attitude, sensor_height, minimum_obstacle_height, step_threshold,
-                maximum_object_angle):
-    """Sensor-frame x, y of every beam that hit a standing object rather than the ground."""
+                maximum_object_angle, lidar_yaw=0.0):
+    """Body-frame x, y of every beam that hit a standing object rather than the ground.
+
+    lidar_yaw is where the scan's own zero bearing points, measured from the rover's
+    forward direction, so a unit bolted on facing aft is pi rather than a code change.
+    """
     ranges = np.asarray(scan.ranges)
-    angles = scan.angle_min + scan.angle_increment * np.arange(len(ranges))
+    angles = scan.angle_min + scan.angle_increment * np.arange(len(ranges)) + lidar_yaw
     roll, pitch = attitude
 
     # Vertical component of each beam once the rover is tilted
