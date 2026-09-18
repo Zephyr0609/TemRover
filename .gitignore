@@ -1,3 +1,8 @@
 OneDrive_*/
 __pycache__/
 *.pyc
+
+# colcon
+build/
+install/
+log/
