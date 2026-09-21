@@ -1,0 +1,14 @@
+/**:
+  ros__parameters:
+    # Start corner of line 1 (RTK fix at that spot: ros2 topic echo /gps/fix)
+    origin_latitude: -37.79873428
+    origin_longitude: 144.96013018
+    # Direction of the lines, radians anticlockwise from true east (0 = east, 1.5708 = north)
+    grid_bearing: 0.0
+    # Three lines 5 m apart: width = (lines - 1) * spacing; length = line length
+    grid_width: 10.0
+    grid_length: 30.0
+    line_spacing: 5.0
+    # Lines are laid on the coordinates above, not on where the rover happens to start
+    anchor_to_origin: true
+    cruise_speed: 0.9

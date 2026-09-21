@@ -654,3 +654,11 @@ autonomous. `hardware.launch.py` now layers `payload.yaml` (towed_length 8.5, so
 seen as an obstacle) and takes `site:=` like the Gazebo launch, e.g. `site:=south_lawn.yaml`.
 Untested on hardware: the CAN command timeout, the towed-train mask on real grass, the alignment
 drift with the train (13.7° in sim, harmless with `anchor_to_origin: true`).
+
+**Pause vs. emergency stop.** Pause (mode idle) keeps every state and Start continues where it
+left off. Clearing an emergency stop now restarts: step 0, detour and obstacle memory cleared,
+driven route cleared and re-latched, mission regenerated on the same grid (bearing and origin kept
+from alignment), mode idle until Start. Verified in simulation with a three-line site file
+(`config/field_today.yaml`, a template for short surveys: origin, bearing, width = (lines − 1) ×
+spacing, length). The rover is expected to be brought back to the start corner before Start;
+resumed elsewhere it treats the remaining distance of line 1 as done.

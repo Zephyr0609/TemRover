@@ -205,6 +205,7 @@ class SurveyNavigator(Node):
             bearing, origin = self.settings['grid_bearing'], np.zeros(2)
         else:
             bearing, origin = self.estimator.heading + self.settings['grid_bearing'], track[0]
+        self.grid = (bearing, origin)
         self.mission = generate_survey_mission(
             self.settings['grid_width'], self.settings['grid_length'],
             self.settings['line_spacing'], bearing, origin)
@@ -250,7 +251,28 @@ class SurveyNavigator(Node):
             header, [(float(x), float(y), 0.0) for x, y in self.obstacle_points]))
 
     def on_emergency_stop(self, message):
+        if self.emergency_stop and not message.data:
+            self.restart()
         self.emergency_stop = message.data
+
+    def restart(self):
+        """Clearing an emergency stop restarts the survey from line 1 on the same grid, in idle until Start."""
+        self.step_index = 0
+        self.survey_line = None
+        self.detour_offset = 0.0
+        self.turn_target = None
+        self.obstacle_points = np.empty((0, 2))
+        self.route = []
+        if self.mission:
+            bearing, origin = self.grid
+            self.mission = generate_survey_mission(
+                self.settings['grid_width'], self.settings['grid_length'],
+                self.settings['line_spacing'], bearing, origin)
+            self.publish_path()
+        self.publish_route()
+        self.mode = 'idle'
+        self.halt()
+        self.get_logger().info('emergency stop cleared: survey reset to line 1, waiting for Start')
 
     def on_mode(self, message):
         """idle holds the rover, manual hands cmd_vel to the operator, autonomous runs the survey."""

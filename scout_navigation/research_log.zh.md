@@ -1115,3 +1115,8 @@ Tx 位置误差均值 0.20 m；Rx 的 2.0 m 不算干净的测试，因为那次
 `start_mode: idle`（页面按 Start 才动，仿真 launch 里覆盖为 autonomous）。`hardware.launch.py` 现在叠加 `payload.yaml`
 （towed_length 8.5，拖车不会被当障碍）并像仿真 launch 一样接受 `site:=`，例如 `site:=south_lawn.yaml`。
 实机未测：CAN 指令超时、真实草地上的拖车屏蔽、挂拖车时的对准漂移（仿真 13.7°，`anchor_to_origin: true` 时无影响）。
+
+**暂停与急停的区别。** 暂停（idle）保留全部状态，Start 从原处继续。清除急停现在是重启：step 归 0，绕行和障碍记忆清空，
+路线清空并重新锁存，同一网格（对准时的方位和原点）重新生成测线，进入 idle 等 Start。用三条线的场地文件
+（`config/field_today.yaml`，短测量模板：原点、方位、宽度 = (线数 − 1) × 间距、长度）在仿真里验证过。
+按 Start 前应把车推回起点角；在别处恢复的话它会把第一条线剩余距离当作已完成。
