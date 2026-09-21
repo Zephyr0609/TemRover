@@ -14,3 +14,5 @@
     cruise_speed: 0.9
     # No IMU on the rover today: yaw rate comes from the chassis feedback, GNSS still required
     dead_reckoning: true
+    # This RPLIDAR S2L reads its zero bearing aft, so every return sat 180 deg out until measured
+    lidar_yaw: 3.141593
