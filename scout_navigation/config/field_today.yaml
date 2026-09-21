@@ -12,3 +12,5 @@
     # Lines are laid on the coordinates above, not on where the rover happens to start
     anchor_to_origin: true
     cruise_speed: 0.9
+    # No IMU on the rover today: yaw rate comes from the chassis feedback, GNSS still required
+    dead_reckoning: true

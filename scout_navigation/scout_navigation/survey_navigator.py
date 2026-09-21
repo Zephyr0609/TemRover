@@ -79,7 +79,7 @@ class SurveyNavigator(Node):
         self.survey_line = None
         self.detour_offset = 0.0
         self.emergency_stop = False
-        self.has_fix = self.settings['dead_reckoning']
+        self.has_fix = False
         self.state = 'WAITING_FOR_FIX'
         self.mode = self.settings['start_mode']
         self.turn_target = None
@@ -99,6 +99,7 @@ class SurveyNavigator(Node):
         self.create_subscription(NavSatFix, 'gps/fix', self.on_fix, 10)
         self.create_subscription(TwistWithCovarianceStamped, 'gps/fix_velocity', self.on_velocity, 10)
         self.create_subscription(Imu, 'imu/data', self.on_imu, 10)
+        # dead_reckoning: no IMU, so the chassis feedback supplies the yaw rate; GNSS is still required
         self.create_subscription(Odometry, 'odom', self.on_chassis_odometry
                                  if self.settings['dead_reckoning'] else self.on_odometry, 10)
         self.create_subscription(LaserScan, 'scan', self.on_scan, 10)
