@@ -1,13 +1,14 @@
 /**:
   ros__parameters:
-    # Start corner of line 1 (RTK fix at that spot: ros2 topic echo /gps/fix)
-    origin_latitude: -37.79873428
-    origin_longitude: 144.96013018
-    # Direction of the lines, radians anticlockwise from true east (0 = east, 1.5708 = north)
-    grid_bearing: 0.0
-    # Three lines 5 m apart: width = (lines - 1) * spacing; length = line length
-    grid_width: 10.0
-    grid_length: 30.0
+    # Line 1 start, MGA2020 zone 55 E 320451.662 N 5814589.031 (experiments/mga_to_geographic.py)
+    origin_latitude: -37.79844180
+    origin_longitude: 144.96064559
+    # Direction of the lines, radians anticlockwise from true east, to the surveyed end point
+    # MGA E 320409.619 N 5814594.319, which is 42.374 m away on a bearing of +171.581 deg
+    grid_bearing: 2.994651
+    grid_length: 42.374
+    # One line only: the two surveyed points are its ends. width = (lines - 1) * spacing
+    grid_width: 0.0
     line_spacing: 5.0
     # Lines are laid on the coordinates above, not on where the rover happens to start
     anchor_to_origin: true

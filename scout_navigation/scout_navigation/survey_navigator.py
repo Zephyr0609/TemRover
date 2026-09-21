@@ -309,7 +309,7 @@ class SurveyNavigator(Node):
         if not self.has_fix or settling < self.settings['startup_delay']:
             return 'WAITING_FOR_FIX'
         if not self.mission:
-            return 'ALIGNING'
+            return 'ALIGNING' if self.alignment_clear() else 'HOLDING'
         if self.step_index >= len(self.mission):
             return 'COMPLETE'
 
@@ -336,6 +336,19 @@ class SurveyNavigator(Node):
         start, end = self.survey_line
         along = line_frame(self.estimator.position[None, :], start, end)[0][0]
         return float(np.hypot(*(end - start))) - along
+
+    def alignment_clear(self):
+        """The alignment run is a blind straight line with no mission to test, so its own
+        corridor is checked: heading is still unknown, but the rover drives along the
+        estimator's heading by construction, which is what the returns are placed against."""
+        reach = self.settings['obstacle_standoff'] + self.braking_distance()
+        if self.state == 'HOLDING':
+            reach += self.settings['hold_hysteresis']
+        heading = self.estimator.heading
+        ahead = self.estimator.position + reach * np.array([np.cos(heading), np.sin(heading)])
+        along, across = line_frame(self.obstacle_points, self.estimator.position, ahead)
+        corridor = self.settings['rover_half_width'] + self.settings['obstacle_clearance']
+        return not ((along > 0.0) & (along < reach) & (np.abs(across) < corridor)).any()
 
     def swing_clear(self):
         """Nothing inside the circle the body sweeps while turning on the spot."""
