@@ -643,3 +643,14 @@ at the payload speed instead of 1.5 m/s:
   Removed it by service call for the recording.
 Open item: a hold with no room ahead has no exit — the planner needs a from-standstill ramp or a
 spot-turn recovery, and the tracker a curvature feed-forward so short ramps are followed.
+
+## 2026-09-21 — Field-day defaults
+
+Before the first survey with the train: `cruise_speed` 0.9 (the payload speed; the train
+oscillates at 1.5), planning margin back to 0.5 m (`obstacle_clearance` 0.3, `obstacle_hysteresis`
+0.2 — the halved margin deadlocked at 0.9 m/s), `obstacle_standoff` 1.0, `start_mode: idle` so the
+rover only moves after Start on the dashboard; the simulation launch overrides `start_mode` to
+autonomous. `hardware.launch.py` now layers `payload.yaml` (towed_length 8.5, so the train is not
+seen as an obstacle) and takes `site:=` like the Gazebo launch, e.g. `site:=south_lawn.yaml`.
+Untested on hardware: the CAN command timeout, the towed-train mask on real grass, the alignment
+drift with the train (13.7° in sim, harmless with `anchor_to_origin: true`).

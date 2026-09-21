@@ -119,5 +119,6 @@ def generate_launch_description():
 
         Node(package='scout_navigation', executable='survey_navigator', name='survey_navigator',
              output='screen', emulate_tty=True,
-             parameters=[SURVEY, payload, LaunchConfiguration('site'), {'use_sim_time': True}]),
+             parameters=[SURVEY, payload, LaunchConfiguration('site'),
+                         {'use_sim_time': True, 'start_mode': 'autonomous'}]),
     ])

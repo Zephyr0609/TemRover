@@ -10,7 +10,7 @@
     point_spacing: 0.1
     turn_radius: 0.0
 
-    # Scout 2.0 datasheet: 6 km/h top speed, 0.2 m minimum braking distance from 6 km/h
+    # 0.9 m/s is the payload survey speed; the Scout tops out at 1.5 m/s but the towed train oscillates there
     cruise_speed: 0.9
     max_deceleration: 6.9
     # CAN motion frame caps both channels at +/-1500 units
@@ -36,10 +36,10 @@
     # Scout 2.0 body 0.925 x 0.70 m: half width, and half diagonal swept by a spot turn
     rover_half_width: 0.35
     swing_radius: 0.58
-    obstacle_standoff: 0.5
+    obstacle_standoff: 1.0
     # Planning margin = clearance + obstacle_hysteresis; the stop decision keeps its own, wider hysteresis
-    obstacle_hysteresis: 0.1
-    obstacle_clearance: 0.15
+    obstacle_hysteresis: 0.2
+    obstacle_clearance: 0.3
     hold_hysteresis: 0.5
     # Ramp length follows from the lateral acceleration the towed carts tolerate at cruise speed
     detour_lookahead: 10.0
@@ -59,3 +59,5 @@
     gnss_offset: -0.30
 
     can_interface: can0
+    # The rover waits until the operator presses Start on the dashboard
+    start_mode: idle

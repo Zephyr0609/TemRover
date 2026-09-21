@@ -1107,3 +1107,11 @@ Tx 位置误差均值 0.20 m；Rx 的 2.0 m 不算干净的测试，因为那次
 - `obstacles.yaml` 里角上的"路人"杆是给 `detour_run.py` 中途移除用的；直接 launch 它一直在，车按设计在第一条线末尾停下等。
   录像时用服务调用把它移掉了。
 待办：前方没空间的停车目前没有出口——规划器需要从静止起步的坡道或原地转的恢复动作，跟踪器需要曲率前馈才能跟上短坡道。
+
+## 2026-09-21 — 下地前的默认参数
+
+第一次挂拖车实测前：`cruise_speed` 0.9（载荷速度，1.5 时拖车振荡）、规划余量改回 0.5 m
+（`obstacle_clearance` 0.3、`obstacle_hysteresis` 0.2，减半的余量在 0.9 m/s 会死锁）、`obstacle_standoff` 1.0、
+`start_mode: idle`（页面按 Start 才动，仿真 launch 里覆盖为 autonomous）。`hardware.launch.py` 现在叠加 `payload.yaml`
+（towed_length 8.5，拖车不会被当障碍）并像仿真 launch 一样接受 `site:=`，例如 `site:=south_lawn.yaml`。
+实机未测：CAN 指令超时、真实草地上的拖车屏蔽、挂拖车时的对准漂移（仿真 13.7°，`anchor_to_origin: true` 时无影响）。
