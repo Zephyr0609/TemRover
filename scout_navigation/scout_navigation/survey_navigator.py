@@ -13,7 +13,7 @@ from tf2_ros import TransformBroadcaster
 
 from .detour import lateral_offset, nearest_group, plan_detour
 from .geodesy import LocalTangentPlane, wrap_to_pi
-from .obstacle_monitor import line_frame, scan_points, to_world, without_towed_train
+from .obstacle_monitor import line_frame, scan_points, to_world
 from .pose_estimator import PoseEstimator
 from .survey_grid import generate_survey_mission
 
@@ -28,8 +28,9 @@ PARAMETERS = [
     ('rotation_settled_rate', 0.05),
     ('obstacle_standoff', 0.5), ('obstacle_hysteresis', 0.1), ('obstacle_clearance', 0.15),
     ('hold_hysteresis', 0.5),
-    ('rover_half_width', 0.35), ('swing_radius', 0.58), ('lidar_offset', 0.34),
-    ('lidar_height', 0.395), ('lidar_yaw', 0.0), ('minimum_obstacle_height', 0.15),
+    ('rover_half_width', 0.35), ('lidar_offset', 0.34),
+    ('lidar_height', 0.395), ('lidar_yaw', 0.0), ('detection_field_of_view', 1.047),
+    ('minimum_obstacle_height', 0.15),
     ('range_step_threshold', 0.3), ('maximum_object_angle', 1.57),
     ('detour_lookahead', 10.0), ('detour_lateral_acceleration', 1.0),
     ('detour_segment_length', 1.0),
@@ -242,9 +243,8 @@ class SurveyNavigator(Node):
         points = scan_points(message, self.attitude, self.settings['lidar_height'],
                              self.settings['minimum_obstacle_height'],
                              self.settings['range_step_threshold'],
-                             self.settings['maximum_object_angle'], self.settings['lidar_yaw'])
-        points = without_towed_train(points, self.settings['lidar_offset'],
-                                     self.settings['towed_length'])
+                             self.settings['maximum_object_angle'], self.settings['lidar_yaw'],
+                             self.settings['detection_field_of_view'])
         self.obstacle_points = to_world(points, self.estimator.position, self.estimator.heading,
                                         self.settings['lidar_offset'])
         header = Header(stamp=message.header.stamp, frame_id='map')
@@ -314,7 +314,7 @@ class SurveyNavigator(Node):
             return 'COMPLETE'
 
         if self.mission[self.step_index][0] == 'turn':
-            return 'TURNING' if self.swing_clear() else 'HOLDING'
+            return 'TURNING'
 
         hold_distance = self.settings['obstacle_standoff'] + self.braking_distance()
         if self.state == 'HOLDING':
@@ -336,13 +336,6 @@ class SurveyNavigator(Node):
         start, end = self.survey_line
         along = line_frame(self.estimator.position[None, :], start, end)[0][0]
         return float(np.hypot(*(end - start))) - along
-
-    def swing_clear(self):
-        """Nothing inside the circle the body sweeps while turning on the spot."""
-        radius = self.settings['swing_radius'] + self.settings['obstacle_clearance']
-        if self.state == 'HOLDING':
-            radius += self.settings['hold_hysteresis']
-        return not (np.hypot(*(self.obstacle_points - self.estimator.position).T) < radius).any()
 
     def blocking_distance(self):
         """Distance along the planned drive steps to the first return inside the swept corridor."""

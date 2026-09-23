@@ -30,6 +30,11 @@
   <rect x="120" y="225" width="440" height="92" fill="#1e63d6" opacity="0.08"/>
   <line x1="60" y1="271" x2="565" y2="271" stroke="#9ca3af" stroke-width="2" stroke-dasharray="8,6"/>
   <text x="565" y="292" font-size="11" fill="#6b7280" text-anchor="end">survey line</text>
+  <path d="M144,271 L291,186 A170,170 0 0,1 291,356 Z" fill="#188038" opacity="0.10"/>
+  <path d="M144,271 L291,186 M144,271 L291,356" stroke="#188038" stroke-width="1.2" stroke-dasharray="6,4" fill="none"/>
+  <path d="M204,236 A70,70 0 0,1 204,306" fill="none" stroke="#188038" stroke-width="1.5"/>
+  <text x="222" y="244" font-weight="bold" fill="#188038">60° cone</text>
+  <text x="222" y="260" font-size="11" fill="#188038">lidar looks ahead</text>
   <use href="#rover" x="120" y="271"/>
   <!-- broken distance -->
   <path d="M330,258 l6,-8 l6,16 l6,-8" fill="none" stroke="#9ca3af" stroke-width="2"/>
@@ -49,7 +54,7 @@
   <line x1="530" y1="225" x2="530" y2="271" stroke="#d93025" stroke-width="1.5" marker-start="url(#dim)" marker-end="url(#dim)"/>
   <text x="522" y="215" text-anchor="end" font-weight="bold" fill="#d93025">0.65 m corridor half-width</text>
   <text x="60" y="412" font-size="12" fill="#374151">Blue band = the strip the rover will sweep: half its width (0.35 m) + 0.30 m clearance on each side.</text>
-  <text x="60" y="430" font-size="12" fill="#374151">Only returns inside this band count as “in the way”.</text>
+  <text x="60" y="430" font-size="12" fill="#374151">Obstacles are only looked for in the green 60° cone; inside the blue band they are “in the way”.</text>
 
   <!-- Panel 2: passing -->
   <rect x="615" y="84" width="555" height="360" rx="12" fill="url(#grass)" stroke="#d1d5db"/>
@@ -82,16 +87,11 @@
   <line x1="260" y1="651" x2="364" y2="651" stroke="#6b7280"/>
   <text x="115" y="690" font-size="11" text-anchor="middle" fill="#6b7280">Rx cart</text>
   <text x="225" y="690" font-size="11" text-anchor="middle" fill="#6b7280">Tx cart</text>
-  <circle cx="400" cy="650" r="62" fill="#d93025" opacity="0.08" stroke="#d93025" stroke-dasharray="5,4"/>
   <use href="#rover" x="400" y="650"/>
-  <line x1="400" y1="650" x2="444" y2="606" stroke="#d93025" stroke-width="1.5" marker-end="url(#dim)"/>
-  <text x="455" y="590" font-weight="bold" fill="#d93025">0.88 m</text>
-  <text x="455" y="608" font-size="11" fill="#6b7280">0.58 corner + 0.30</text>
-  <!-- ignored train -->
-  <line x1="80" y1="720" x2="368" y2="720" stroke="#d93025" stroke-width="1.5" marker-start="url(#dim)" marker-end="url(#dim)"/>
-  <text x="224" y="742" text-anchor="middle" font-weight="bold" fill="#d93025">8.5 m behind — the carts, ignored</text>
-  <text x="60" y="784" font-size="12" fill="#374151">Before turning on the spot, nothing may be inside the red circle; otherwise it waits.</text>
-  <text x="60" y="802" font-size="12" fill="#374151">Lidar returns straight behind within 8.5 m are the towed carts, not obstacles.</text>
+  <path d="M440,610 A56,56 0 1,1 360,610" fill="none" stroke="#1e63d6" stroke-width="2" marker-end="url(#dir)"/>
+  <text x="400" y="565" text-anchor="middle" font-size="12" fill="#1e63d6">turns on the spot, 90°</text>
+  <text x="60" y="784" font-size="12" fill="#374151">At the end of each line it stops, turns 90° on the spot, drives 5 m to the next line</text>
+  <text x="60" y="802" font-size="12" fill="#374151">and turns again. The carts behind are outside the lidar's 60° cone, so they are never seen.</text>
 
   <!-- Panel 4: lidar side view -->
   <rect x="615" y="464" width="555" height="370" rx="12" fill="url(#grass)" stroke="#d1d5db"/>
@@ -121,8 +121,8 @@
   <text x="898" y="740" font-size="11" text-anchor="middle" fill="#6b7280">tussock: ignored</text>
   <rect x="1020" y="630" width="30" height="70" fill="#6b4f3a"/>
   <text x="1035" y="740" font-size="11" text-anchor="middle" fill="#6b4f3a">obstacle</text>
-  <line x1="1135" y1="690" x2="1135" y2="700" stroke="#d93025" stroke-width="1.5"/><text x="960" y="684" text-anchor="middle" font-weight="bold" fill="#d93025">0.15 m — lower = ground</text>
-  <text x="635" y="772" font-size="12" fill="#374151">Anything lower than 0.15 m is treated as ground. The scanner turns 360°, sees up to 30 m,</text>
-  <text x="635" y="790" font-size="12" fill="#374151">and the navigator only plans within 10 m. This scanner is mounted with its 0° facing</text>
-  <text x="635" y="808" font-size="12" fill="#374151">backwards, so the software rotates every reading by 180°.</text>
+  <line x1="1135" y1="690" x2="1135" y2="700" stroke="#d93025" stroke-width="1.5"/><text x="905" y="684" text-anchor="middle" font-weight="bold" fill="#d93025">0.15 m — lower = ground</text>
+  <text x="635" y="772" font-size="12" fill="#374151">Anything lower than 0.15 m is treated as ground. The scanner turns 360°;</text>
+  <text x="635" y="790" font-size="12" fill="#374151">only the front 60° is used, planning within 10 m. Its 0° faces</text>
+  <text x="635" y="808" font-size="12" fill="#374151">backwards on this rover, so the software rotates every reading by 180°.</text>
 </svg>

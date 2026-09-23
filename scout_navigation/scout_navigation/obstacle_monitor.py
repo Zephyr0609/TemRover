@@ -2,11 +2,12 @@ import numpy as np
 
 
 def scan_points(scan, attitude, sensor_height, minimum_obstacle_height, step_threshold,
-                maximum_object_angle, lidar_yaw=0.0):
+                maximum_object_angle, lidar_yaw, field_of_view):
     """Body-frame x, y of every beam that hit a standing object rather than the ground.
 
     lidar_yaw is where the scan's own zero bearing points, measured from the rover's
     forward direction, so a unit bolted on facing aft is pi rather than a code change.
+    Only beams within field_of_view centred on the rover's heading are kept.
     """
     ranges = np.asarray(scan.ranges)
     angles = scan.angle_min + scan.angle_increment * np.arange(len(ranges)) + lidar_yaw
@@ -20,6 +21,9 @@ def scan_points(scan, attitude, sensor_height, minimum_obstacle_height, step_thr
 
     ranges, angles = standing_objects(ranges[valid], angles[valid], step_threshold,
                                       maximum_object_angle)
+    # Segment on the full scan first so an object straddling the cone edge keeps its true width
+    ahead = np.abs(np.angle(np.exp(1j * angles))) <= field_of_view / 2.0
+    ranges, angles = ranges[ahead], angles[ahead]
     return np.column_stack([ranges * np.cos(angles), ranges * np.sin(angles)])
 
 
@@ -36,12 +40,6 @@ def standing_objects(ranges, angles, step_threshold, maximum_object_angle):
             compact |= members
     return ranges[compact], angles[compact]
 
-
-def without_towed_train(points, sensor_offset, towed_length):
-    """Drops returns from the carts the rover tows: behind base_link and within the train's reach."""
-    behind = points[:, 0] + sensor_offset < 0.0
-    near = np.hypot(points[:, 0] + sensor_offset, points[:, 1]) < towed_length
-    return points[~(behind & near)]
 
 
 def to_world(points, position, heading, sensor_offset):

@@ -662,3 +662,16 @@ from alignment), mode idle until Start. Verified in simulation with a three-line
 (`config/field_today.yaml`, a template for short surveys: origin, bearing, width = (lines − 1) ×
 spacing, length). The rover is expected to be brought back to the start corner before Start;
 resumed elsewhere it treats the remaining distance of line 1 as done.
+
+## 2026-09-23 — 60° detection cone; spot-turn check removed
+
+Obstacles are now looked for only in a 60° cone ahead (`detection_field_of_view` 1.047 rad),
+cut after segmentation so an object on the cone edge keeps its width. The spot-turn swing check
+(`swing_radius`, 0.88 m circle) is removed at the user's call: turns no longer wait for a clear
+circle. With nothing behind in view, the towed-train mask could never fire and is removed too;
+`towed_length` stays only so the dashboard draws the carts. Simulation, seven obstacles, 0.9 m/s:
+all passed with clearances +0.30 .. +0.55 m, no holds, no LOST.
+Consequence to remember: within about 1.1 m of the lidar the 60° cone is narrower than the
+1.3 m corridor, so an object stepping in from the side close up is not seen, and nothing
+checks the sides during a spot turn. The RC e-stop covers both.
+`results/figures/avoidance_parameters.svg` shows every setting for non-specialists.

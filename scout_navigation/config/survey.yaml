@@ -31,11 +31,12 @@
     lidar_offset: 0.34
     # Where the scan's zero bearing points, from the rover's forward direction: pi if it faces aft
     lidar_yaw: 0.0
+    # Obstacles are looked for in a 60 deg cone straight ahead (radians, full width)
+    detection_field_of_view: 1.047
     # A wall fills up to a quarter turn of the scan up close; a slope fills half or more
     maximum_object_angle: 1.57
-    # Scout 2.0 body 0.925 x 0.70 m: half width, and half diagonal swept by a spot turn
+    # Scout 2.0 body 0.925 x 0.70 m
     rover_half_width: 0.35
-    swing_radius: 0.58
     obstacle_standoff: 1.0
     # Planning margin = clearance + obstacle_hysteresis; the stop decision keeps its own, wider hysteresis
     obstacle_hysteresis: 0.2
