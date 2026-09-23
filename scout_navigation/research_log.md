@@ -675,3 +675,12 @@ Consequence to remember: within about 1.1 m of the lidar the 60° cone is narrow
 1.3 m corridor, so an object stepping in from the side close up is not seen, and nothing
 checks the sides during a spot turn. The RC e-stop covers both.
 `results/figures/avoidance_parameters.svg` shows every setting for non-specialists.
+
+**Obstacle memory (field report: the map filled with smeared returns).** The navigator never
+accumulated returns: `obstacle_points` is replaced by every scan, so planning only ever sees the
+latest 0.1 s. The build-up was the dashboard alone, which kept every 0.1 m cell forever. It now
+forgets a cell 3 s after its last return (sim: 27–133 cells live, bounded, instead of growing).
+The fan-shaped smears in the field screenshot are one object painted at many places while the
+heading estimate moved (no IMU, chassis yaw rate only); with a 3 s memory they no longer pile up.
+Open: a detour committed around a pedestrian stays in the mission after the person walks off;
+cancelling it needs care because the 60° cone loses an object once the rover is beside it.

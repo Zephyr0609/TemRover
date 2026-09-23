@@ -82,6 +82,8 @@ const ros = new ROSLIB.Ros({ url: `ws://${host}:9090` });
 document.getElementById('video').src = `http://${host}:8080/stream?topic=/front_camera/image&type=mjpeg&quality=60`;
 
 const OBSTACLE_CELL = 0.1;
+// The navigator decides on the latest scan only; the page holds returns 3 s so a sparse scan stays readable
+const OBSTACLE_MEMORY_MS = 3000;
 const LIDAR_OFFSET = 0.34;
 // Scout 2.0 (scout_v2.xacro) and the Tx/Rx carts (temrover_carts.xacro), metres in base_link frame
 const ROVER = { body: [0.925, 0.38], wheel: [0.329, 0.117], wheels: [[0.249, 0.292], [0.249, -0.292], [-0.249, 0.292], [-0.249, -0.292]],
@@ -139,7 +141,7 @@ topic('/obstacle_points', 'sensor_msgs/PointCloud2', 200).subscribe(m => {
   const view = new DataView(bytes.buffer);
   for (let offset = 0; offset + 8 <= bytes.length; offset += m.point_step) {
     const x = view.getFloat32(offset, true), y = view.getFloat32(offset + 4, true);
-    state.obstacles.set(`${Math.round(x / OBSTACLE_CELL)},${Math.round(y / OBSTACLE_CELL)}`, [x, y]);
+    state.obstacles.set(`${Math.round(x / OBSTACLE_CELL)},${Math.round(y / OBSTACLE_CELL)}`, [x, y, Date.now()]);
   }
 });
 topic('/gps/fix', 'sensor_msgs/NavSatFix', 1000).subscribe(m => setPill('fix', m.status.status >= 0));
@@ -271,6 +273,8 @@ function drawTrain(X, Y, scale) {
 }
 
 function draw() {
+  const expired = Date.now() - OBSTACLE_MEMORY_MS;
+  for (const [key, point] of state.obstacles) if (point[2] < expired) state.obstacles.delete(key);
   const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
   if (canvas.width !== w * dpr || canvas.height !== h * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
