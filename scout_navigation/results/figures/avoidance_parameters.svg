@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="860" viewBox="0 0 1200 860" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#1f2937">
+  <defs>
+    <marker id="dim" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#d93025"/>
+    </marker>
+    <marker id="dir" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1e63d6"/>
+    </marker>
+    <pattern id="grass" width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="8" height="8" fill="#f4f8f1"/>
+    </pattern>
+    <!-- Rover seen from above, 0.925 m x 0.70 m at 70 px/m, front to the right, centred on its origin -->
+    <g id="rover">
+      <rect x="-26" y="-25" width="20" height="8" rx="2" fill="#374151"/>
+      <rect x="6" y="-25" width="20" height="8" rx="2" fill="#374151"/>
+      <rect x="-26" y="17" width="20" height="8" rx="2" fill="#374151"/>
+      <rect x="6" y="17" width="20" height="8" rx="2" fill="#374151"/>
+      <rect x="-32" y="-17" width="64" height="34" rx="4" fill="#ffffff" stroke="#374151" stroke-width="1.5"/>
+      <rect x="24" y="-11" width="8" height="22" fill="#d93025"/>
+      <circle cx="24" cy="0" r="4" fill="#1e63d6"/>
+    </g>
+  </defs>
+  <rect width="1200" height="860" fill="#ffffff"/>
+  <text x="30" y="40" font-size="22" font-weight="bold">Obstacle avoidance and lidar settings</text>
+  <text x="30" y="64" font-size="13" fill="#6b7280">Top views unless noted · rover 0.925 m long, 0.70 m wide · red lines are the settings · distances not to scale where the line is broken</text>
+
+  <!-- Panel 1: seeing and stopping -->
+  <rect x="30" y="84" width="555" height="360" rx="12" fill="url(#grass)" stroke="#d1d5db"/>
+  <text x="50" y="114" font-size="16" font-weight="bold">1 · Seeing an obstacle and stopping</text>
+  <rect x="120" y="225" width="440" height="92" fill="#1e63d6" opacity="0.08"/>
+  <line x1="60" y1="271" x2="565" y2="271" stroke="#9ca3af" stroke-width="2" stroke-dasharray="8,6"/>
+  <text x="565" y="292" font-size="11" fill="#6b7280" text-anchor="end">survey line</text>
+  <use href="#rover" x="120" y="271"/>
+  <!-- broken distance -->
+  <path d="M330,258 l6,-8 l6,16 l6,-8" fill="none" stroke="#9ca3af" stroke-width="2"/>
+  <circle cx="470" cy="271" r="18" fill="#6b4f3a"/>
+  <text x="470" y="330" font-size="12" text-anchor="middle" fill="#6b4f3a">obstacle</text>
+  <!-- look-ahead -->
+  <line x1="120" y1="160" x2="470" y2="160" stroke="#d93025" stroke-width="1.5" marker-start="url(#dim)" marker-end="url(#dim)"/>
+  <line x1="120" y1="152" x2="120" y2="250" stroke="#d93025" stroke-width="0.8" stroke-dasharray="3,3"/>
+  <line x1="470" y1="152" x2="470" y2="250" stroke="#d93025" stroke-width="0.8" stroke-dasharray="3,3"/>
+  <text x="295" y="150" text-anchor="middle" font-weight="bold" fill="#d93025">10 m — look-ahead: start planning a detour</text>
+  <!-- stop distance -->
+  <line x1="120" y1="355" x2="190" y2="355" stroke="#d93025" stroke-width="1.5" marker-start="url(#dim)" marker-end="url(#dim)"/>
+  <line x1="190" y1="300" x2="190" y2="362" stroke="#d93025" stroke-width="0.8" stroke-dasharray="3,3"/>
+  <text x="200" y="360" font-weight="bold" fill="#d93025">1.0 m — stop if the way is still blocked</text>
+  <text x="200" y="380" font-size="12" fill="#6b7280">drives on again once it is clear beyond 1.5 m</text>
+  <!-- corridor -->
+  <line x1="530" y1="225" x2="530" y2="271" stroke="#d93025" stroke-width="1.5" marker-start="url(#dim)" marker-end="url(#dim)"/>
+  <text x="522" y="215" text-anchor="end" font-weight="bold" fill="#d93025">0.65 m corridor half-width</text>
+  <text x="60" y="412" font-size="12" fill="#374151">Blue band = the strip the rover will sweep: half its width (0.35 m) + 0.30 m clearance on each side.</text>
+  <text x="60" y="430" font-size="12" fill="#374151">Only returns inside this band count as “in the way”.</text>
+
+  <!-- Panel 2: passing -->
+  <rect x="615" y="84" width="555" height="360" rx="12" fill="url(#grass)" stroke="#d1d5db"/>
+  <text x="635" y="114" font-size="16" font-weight="bold">2 · Passing the obstacle</text>
+  <line x1="645" y1="300" x2="1150" y2="300" stroke="#9ca3af" stroke-width="2" stroke-dasharray="8,6"/>
+  <path d="M650,300 L720,300 C790,300 790,196 860,196 L960,196 C1030,196 1030,300 1100,300 L1150,300" fill="none" stroke="#1e63d6" stroke-width="3"/>
+  <circle cx="910" cy="296" r="30" fill="#6b4f3a"/>
+  <text x="910" y="350" font-size="12" text-anchor="middle" fill="#6b4f3a">obstacle</text>
+  <use href="#rover" x="910" y="196"/>
+  <!-- gap between rover side and obstacle -->
+  <line x1="880" y1="221" x2="880" y2="274" stroke="#d93025" stroke-width="1.5" marker-start="url(#dim)" marker-end="url(#dim)"/>
+  <text x="872" y="252" text-anchor="end" font-weight="bold" fill="#d93025">0.5 m gap</text>
+  <text x="872" y="270" text-anchor="end" font-size="11" fill="#6b7280">0.30 clearance + 0.20 buffer</text>
+  <!-- ramp -->
+  <line x1="720" y1="330" x2="860" y2="330" stroke="#d93025" stroke-width="1.5" marker-start="url(#dim)" marker-end="url(#dim)"/>
+  <text x="790" y="385" text-anchor="middle" font-weight="bold" fill="#d93025">side-step ≈ 2–3 m long</text>
+  <text x="790" y="403" text-anchor="middle" font-size="11" fill="#6b7280">sideways acceleration ≤ 1.0 m/s² so the carts follow</text>
+  <line x1="790" y1="335" x2="790" y2="368" stroke="#d93025" stroke-width="0.8" stroke-dasharray="3,3"/>
+  <text x="1150" y="325" text-anchor="end" font-size="12" fill="#1e63d6">back on the line right after</text>
+  <text x="635" y="430" font-size="12" fill="#374151">Picks the shorter side, keeps that side for the whole line, speed 0.9 m/s.</text>
+
+  <!-- Panel 3: turning -->
+  <rect x="30" y="464" width="555" height="370" rx="12" fill="url(#grass)" stroke="#d1d5db"/>
+  <text x="50" y="494" font-size="16" font-weight="bold">3 · Turning at the end of a line</text>
+  <!-- towed carts -->
+  <line x1="120" y1="650" x2="370" y2="650" stroke="#9ca3af" stroke-width="2" stroke-dasharray="8,6"/>
+  <rect x="80" y="630" width="70" height="42" rx="4" fill="#ffffff" stroke="#6b7280" stroke-dasharray="4,3"/>
+  <rect x="190" y="630" width="70" height="42" rx="4" fill="#ffffff" stroke="#6b7280" stroke-dasharray="4,3"/>
+  <line x1="150" y1="651" x2="190" y2="651" stroke="#6b7280"/>
+  <line x1="260" y1="651" x2="364" y2="651" stroke="#6b7280"/>
+  <text x="115" y="690" font-size="11" text-anchor="middle" fill="#6b7280">Rx cart</text>
+  <text x="225" y="690" font-size="11" text-anchor="middle" fill="#6b7280">Tx cart</text>
+  <circle cx="400" cy="650" r="62" fill="#d93025" opacity="0.08" stroke="#d93025" stroke-dasharray="5,4"/>
+  <use href="#rover" x="400" y="650"/>
+  <line x1="400" y1="650" x2="444" y2="606" stroke="#d93025" stroke-width="1.5" marker-end="url(#dim)"/>
+  <text x="455" y="590" font-weight="bold" fill="#d93025">0.88 m</text>
+  <text x="455" y="608" font-size="11" fill="#6b7280">0.58 corner + 0.30</text>
+  <!-- ignored train -->
+  <line x1="80" y1="720" x2="368" y2="720" stroke="#d93025" stroke-width="1.5" marker-start="url(#dim)" marker-end="url(#dim)"/>
+  <text x="224" y="742" text-anchor="middle" font-weight="bold" fill="#d93025">8.5 m behind — the carts, ignored</text>
+  <text x="60" y="784" font-size="12" fill="#374151">Before turning on the spot, nothing may be inside the red circle; otherwise it waits.</text>
+  <text x="60" y="802" font-size="12" fill="#374151">Lidar returns straight behind within 8.5 m are the towed carts, not obstacles.</text>
+
+  <!-- Panel 4: lidar side view -->
+  <rect x="615" y="464" width="555" height="370" rx="12" fill="url(#grass)" stroke="#d1d5db"/>
+  <text x="635" y="494" font-size="16" font-weight="bold">4 · Lidar (side view)</text>
+  <line x1="640" y1="700" x2="1150" y2="700" stroke="#6b7280" stroke-width="2"/>
+  <text x="1150" y="720" font-size="11" text-anchor="end" fill="#6b7280">ground</text>
+  <!-- rover side, 70 px/m: body 0.925 long, centre at x=740 -->
+  <circle cx="722" cy="688" r="12" fill="#374151"/>
+  <circle cx="758" cy="688" r="12" fill="#374151"/>
+  <rect x="708" y="660" width="65" height="22" rx="3" fill="#ffffff" stroke="#374151" stroke-width="1.5"/>
+  <line x1="764" y1="660" x2="764" y2="672" stroke="#374151" stroke-width="3"/>
+  <rect x="757" y="666" width="14" height="10" rx="2" fill="#1e63d6"/>
+  <text x="764" y="652" font-size="11" text-anchor="middle" fill="#1e63d6">lidar</text>
+  <!-- beam -->
+  <path d="M771,672 L1120,672" stroke="#1e63d6" stroke-width="1.5" stroke-dasharray="2,4"/>
+  <path d="M771,671 L1120,640 L1120,704 Z" fill="#1e63d6" opacity="0.06"/>
+  <!-- height of lidar -->
+  <line x1="690" y1="672" x2="690" y2="700" stroke="#d93025" stroke-width="1.5" marker-start="url(#dim)" marker-end="url(#dim)"/>
+  <text x="684" y="690" text-anchor="end" font-weight="bold" fill="#d93025">0.40 m</text>
+  <!-- forward offset -->
+  <line x1="740" y1="620" x2="764" y2="620" stroke="#d93025" stroke-width="1.5" marker-start="url(#dim)" marker-end="url(#dim)"/>
+  <line x1="740" y1="614" x2="740" y2="660" stroke="#d93025" stroke-width="0.8" stroke-dasharray="3,3"/>
+  <text x="752" y="608" text-anchor="middle" font-weight="bold" fill="#d93025">0.34 m ahead of centre</text>
+  <!-- low object and threshold -->
+  <line x1="820" y1="690" x2="1120" y2="690" stroke="#d93025" stroke-width="1" stroke-dasharray="5,4"/>
+  <rect x="880" y="694" width="36" height="6" fill="#9ca3af"/>
+  <text x="898" y="740" font-size="11" text-anchor="middle" fill="#6b7280">tussock: ignored</text>
+  <rect x="1020" y="630" width="30" height="70" fill="#6b4f3a"/>
+  <text x="1035" y="740" font-size="11" text-anchor="middle" fill="#6b4f3a">obstacle</text>
+  <line x1="1135" y1="690" x2="1135" y2="700" stroke="#d93025" stroke-width="1.5"/><text x="960" y="684" text-anchor="middle" font-weight="bold" fill="#d93025">0.15 m — lower = ground</text>
+  <text x="635" y="772" font-size="12" fill="#374151">Anything lower than 0.15 m is treated as ground. The scanner turns 360°, sees up to 30 m,</text>
+  <text x="635" y="790" font-size="12" fill="#374151">and the navigator only plans within 10 m. This scanner is mounted with its 0° facing</text>
+  <text x="635" y="808" font-size="12" fill="#374151">backwards, so the software rotates every reading by 180°.</text>
+</svg>
