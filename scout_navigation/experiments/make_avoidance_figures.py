@@ -72,7 +72,7 @@ def perception():
               'angular width < 90°', 'M 686 78 Q 710 72 734 78', 5, 'returns in one narrow cluster', (686, 142, 734, 142), '→ classified as obstacle')
     dashes = [f"<line x1='{x}' y1='{y}' x2='{x}' y2='132' stroke='{DANGER}' stroke-width='1.5' stroke-dasharray='3 3'/>"
               for x, y in ((62, 96), (298, 96), (686, 78), (734, 78))]
-    sep = f"<line x1='500' y1='40' x2='500' y2='270' stroke='#C9D6E0'/>"
+    sep = "<line x1='500' y1='40' x2='500' y2='270' stroke='#C9D6E0'/>"
     return svg(1000, 290, '\n'.join(a + b + dashes + [sep]))
 
 
@@ -112,43 +112,9 @@ def detour():
     return svg(1000, 320, '\n'.join(b))
 
 
-def side():
-    b = [
-        f"<line x1='60' y1='150' x2='940' y2='150' stroke='{ACCENT}' stroke-width='1.6' stroke-dasharray='8 5'/>",
-        text(890, 171, 'survey line', ACCENT, size=12),
-        f"<rect x='470' y='108' width='64' height='44' rx='3' fill='{DANGER}'/>",
-        f"<line x1='600' y1='60' x2='900' y2='60' stroke='{ACCENT}' stroke-width='3'/>",
-        text(610, 50, 'left detour needs +2.95 m  ← chosen', ACCENT, 'start', 12, 'bold'),
-        f"<line x1='600' y1='214' x2='900' y2='214' stroke='{ACCENT}' stroke-width='3' opacity='0.35'/>",
-        text(610, 236, 'right detour needs −1.75 m', MUTED, 'start', 12),
-        f"<rect x='150' y='98' width='24' height='22' rx='2' fill='{INK}'/>",
-        arrow(162, 120, 162, 150, both=True, width=1.2), text(180, 112, 'rover currently at +1.0 m', INK, 'start', 12),
-        text(150, 200, 'from +1.0: left needs 1.95 m of movement, right needs 2.75 m and crosses the line', MUTED, 'start', 12),
-        text(150, 222, 'rule: pick the side nearer to where the rover already is', INK, 'start', 12, 'bold'),
-    ]
-    return svg(1000, 250, '\n'.join(b))
-
-
-def swing():
-    b = [
-        f"<line x1='60' y1='150' x2='700' y2='150' stroke='{ACCENT}' stroke-width='1.6' stroke-dasharray='8 5'/>",
-        text(90, 140, 'this line', ACCENT, 'start', 12),
-        f"<line x1='700' y1='150' x2='700' y2='40' stroke='{ACCENT}' stroke-width='1.6' stroke-dasharray='8 5'/>",
-        text(712, 60, 'next line', ACCENT, 'start', 12),
-        f"<circle cx='700' cy='150' r='78' fill='none' stroke='{INK}' stroke-width='1.5' stroke-dasharray='5 4'/>",
-        f"<rect x='686' y='138' width='28' height='24' rx='2' fill='{INK}'/>",
-        f"<line x1='700' y1='150' x2='778' y2='150' stroke='{INK}' stroke-width='1.2'/>", text(740, 142, '1.08 m', size=12),
-        text(620, 240, 'swing circle of the body', MUTED, size=12),
-        f"<circle cx='700' cy='215' r='6' fill='{DANGER}'/>",
-        text(716, 219, 'pole 0.90 m away → inside circle → hold', DANGER, 'start', 12, 'bold'),
-        f"<circle cx='860' cy='150' r='17' fill='{DANGER}' opacity='0.35'/>", text(884, 154, 'outside → turn allowed', MUTED, 'start', 12),
-    ]
-    return svg(1000, 250, '\n'.join(b))
-
-
 FIGURES = {
     '1_overview': overview, '2_perception_slope_vs_object': perception, '3_corridor': corridor,
-    '4_detour_path': detour, '5_side_selection': side, '6_swing_circle': swing,
+    '4_detour_path': detour,
 }
 
 if __name__ == '__main__':

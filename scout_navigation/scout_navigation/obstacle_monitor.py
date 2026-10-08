@@ -41,7 +41,6 @@ def standing_objects(ranges, angles, step_threshold, maximum_object_angle):
     return ranges[compact], angles[compact]
 
 
-
 def to_world(points, position, heading, sensor_offset):
     """Places sensor-frame points in the world from the rover pose and the sensor's forward offset."""
     rotation = np.array([[np.cos(heading), -np.sin(heading)], [np.sin(heading), np.cos(heading)]])

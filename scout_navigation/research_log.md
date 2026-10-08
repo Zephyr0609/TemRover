@@ -684,3 +684,15 @@ The fan-shaped smears in the field screenshot are one object painted at many pla
 heading estimate moved (no IMU, chassis yaw rate only); with a 3 s memory they no longer pile up.
 Open: a detour committed around a pedestrian stays in the mission after the person walks off;
 cancelling it needs care because the 60° cone loses an object once the rover is beside it.
+
+## 2026-10-08 — Repository clean-up
+
+Removed what no longer runs or describes the current system: the Phase-1 offline simulator
+(`path_tracking.py`, `rover_model.py`, `simulate.py`, `run_experiments.py`, `record_run.py`,
+`plot_turn_geometry.py`), the curved-turn path generator in `survey_grid.py` (only the
+straight-run mission is used) with its `turn_radius` / `point_spacing` parameters, the
+one-off `rover_mission.py`, figures of rules that were deleted (side switching, swing circle),
+outdated explainer pages and their images. `make_path_marker.py` now draws the same mission the
+navigator drives. `architecture.zh.md` rewritten for the current code. `General/` (project
+documents) is ignored. Regression in simulation, seven obstacles, 0.9 m/s: clearances
++0.30 .. +0.57 m, no holds, no LOST. Everything removed is still in git history.

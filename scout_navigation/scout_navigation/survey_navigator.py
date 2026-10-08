@@ -19,8 +19,8 @@ from .survey_grid import generate_survey_mission
 
 PARAMETERS = [
     ('origin_latitude', -37.7963), ('origin_longitude', 144.9614), ('grid_bearing', 0.0),
-    ('grid_width', 50.0), ('grid_length', 50.0), ('line_spacing', 5.0), ('point_spacing', 0.1),
-    ('turn_radius', 0.0), ('cruise_speed', 1.5), ('max_angular_velocity', 1.5),
+    ('grid_width', 50.0), ('grid_length', 50.0), ('line_spacing', 5.0),
+    ('cruise_speed', 1.5), ('max_angular_velocity', 1.5),
     ('max_deceleration', 6.9), ('heading_gain', 1.5), ('cross_track_gain', 0.8),
     ('arrival_tolerance', 0.05), ('halt_speed', 0.05), ('path_deviation_limit', 3.0),
     ('control_period', 0.05), ('startup_delay', 5.0), ('alignment_distance', 8.0), ('alignment_speed', 0.3),

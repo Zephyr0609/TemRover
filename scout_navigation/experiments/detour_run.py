@@ -37,7 +37,6 @@ def remove_request(name):
             '--timeout', '2000', '--req', f'name: "{name}" type: MODEL']
 
 
-
 def surface_distance(position, obstacle):
     """Distance from a point to the outside of an axis-aligned box, or of a circle."""
     centre_x, centre_y, half_x, half_y = obstacle

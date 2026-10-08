@@ -1,32 +1,20 @@
 """Writes the planned survey path as a static Gazebo model so it is visible in the scene."""
 import numpy as np
 
-from scout_navigation.geodesy import wrap_to_pi
-from scout_navigation.survey_grid import generate_boustrophedon_path
+from scout_navigation.survey_grid import generate_survey_mission
 from survey_config import load_grid
 
 GRID = load_grid()
 RIBBON_WIDTH = 0.12
 RIBBON_HEIGHT = 0.02
-HEADING_TOLERANCE = np.radians(10.0)
 MARKER_RADIUS = 0.45
 
 
-def segments(path):
-    """Breaks the path wherever the heading has turned past the tolerance, then draws chords."""
-    bounds = [0]
-    for index in range(1, len(path)):
-        if abs(wrap_to_pi(path.headings[index] - path.headings[bounds[-1]])) > HEADING_TOLERANCE:
-            bounds.append(index)
-    bounds.append(len(path) - 1)
-
-    for start, stop in zip(bounds[:-1], bounds[1:]):
-        offset = path.points[stop] - path.points[start]
-        length = float(np.hypot(*offset))
-        if length < RIBBON_WIDTH:
-            continue
-        centre = (path.points[start] + path.points[stop]) / 2.0
-        yield centre, length, float(np.arctan2(offset[1], offset[0]))
+def segments(mission):
+    """One ribbon per straight run of the mission, laid on the grid anchored at the origin."""
+    for _, start, end in (step for step in mission if step[0] == 'drive'):
+        offset = end - start
+        yield (start + end) / 2.0, float(np.hypot(*offset)), float(np.arctan2(offset[1], offset[0]))
 
 
 def ribbon(index, centre, length, heading):
@@ -60,10 +48,12 @@ def endpoint(name, point, colour):
 
 
 def main():
-    path = generate_boustrophedon_path(**GRID)
-    pieces = [ribbon(index, *segment) for index, segment in enumerate(segments(path))]
-    pieces.append(endpoint('start_marker', path.points[0], '0.15 0.65 0.25'))
-    pieces.append(endpoint('end_marker', path.points[-1], '0.85 0.30 0.10'))
+    mission = generate_survey_mission(**GRID, origin=np.zeros(2))
+    drives = [step for step in mission if step[0] == 'drive']
+    start, end = drives[0][1], drives[-1][2]
+    pieces = [ribbon(index, *segment) for index, segment in enumerate(segments(mission))]
+    pieces.append(endpoint('start_marker', start, '0.15 0.65 0.25'))
+    pieces.append(endpoint('end_marker', end, '0.85 0.30 0.10'))
 
     with open('worlds/survey_path.sdf', 'w') as sdf:
         sdf.write('<?xml version="1.0"?>\n<sdf version="1.9">\n'
@@ -72,7 +62,7 @@ def main():
         sdf.write('  </model>\n</sdf>\n')
 
     print(f'{len(pieces) - 2} ribbon segments, '
-          f'start {path.points[0].round(2)}, end {path.points[-1].round(2)}')
+          f'start {start.round(2)}, end {end.round(2)}')
 
 
 if __name__ == '__main__':

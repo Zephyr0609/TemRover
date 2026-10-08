@@ -7,8 +7,6 @@
     grid_width: 50.0
     grid_length: 50.0
     line_spacing: 5.0
-    point_spacing: 0.1
-    turn_radius: 0.0
 
     # 0.9 m/s is the payload survey speed; the Scout tops out at 1.5 m/s but the towed train oscillates there
     cruise_speed: 0.9

@@ -25,7 +25,7 @@
       </visual>
     </link>
     <link name="segment_2">
-      <pose>25.000 5.000 0.010 0 0 -3.1416</pose>
+      <pose>25.000 5.000 0.010 0 0 3.1416</pose>
       <visual name="visual">
         <geometry><box><size>50.000 0.12 0.02</size></box></geometry>
         <material>
@@ -69,7 +69,7 @@
       </visual>
     </link>
     <link name="segment_6">
-      <pose>25.000 15.000 0.010 0 0 -3.1416</pose>
+      <pose>25.000 15.000 0.010 0 0 3.1416</pose>
       <visual name="visual">
         <geometry><box><size>50.000 0.12 0.02</size></box></geometry>
         <material>
@@ -113,7 +113,7 @@
       </visual>
     </link>
     <link name="segment_10">
-      <pose>25.000 25.000 0.010 0 0 -3.1416</pose>
+      <pose>25.000 25.000 0.010 0 0 3.1416</pose>
       <visual name="visual">
         <geometry><box><size>50.000 0.12 0.02</size></box></geometry>
         <material>
@@ -157,7 +157,7 @@
       </visual>
     </link>
     <link name="segment_14">
-      <pose>25.000 35.000 0.010 0 0 -3.1416</pose>
+      <pose>25.000 35.000 0.010 0 0 3.1416</pose>
       <visual name="visual">
         <geometry><box><size>50.000 0.12 0.02</size></box></geometry>
         <material>
@@ -201,7 +201,7 @@
       </visual>
     </link>
     <link name="segment_18">
-      <pose>25.000 45.000 0.010 0 0 -3.1416</pose>
+      <pose>25.000 45.000 0.010 0 0 3.1416</pose>
       <visual name="visual">
         <geometry><box><size>50.000 0.12 0.02</size></box></geometry>
         <material>

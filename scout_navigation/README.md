@@ -57,7 +57,7 @@ sudo ip link set can0 up type can bitrate 500000
 ## Experiments
 
 ```
-PYTHONPATH=. python3 experiments/run_experiments.py   # controller and receiver-grade study, writes results/
+PYTHONPATH=.:experiments python3 experiments/detour_run.py 230 results/run.png   # seven-obstacle test against a running simulation
 ```
 
 Findings and open questions are tracked in `research_log.md`, with a Chinese copy in
