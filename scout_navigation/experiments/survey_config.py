@@ -6,7 +6,8 @@ import yaml
 CONFIG_DIRECTORY = pathlib.Path(__file__).resolve().parent.parent / 'config'
 BASE_CONFIG = CONFIG_DIRECTORY / 'survey.yaml'
 GRID_KEYS = {'width': 'grid_width', 'length': 'grid_length', 'line_spacing': 'line_spacing',
-             'bearing': 'grid_bearing'}
+             'bearing': 'grid_bearing', 'turn_radius': 'turn_radius', 'headland': 'headland',
+             'segment_length': 'turn_segment_length'}
 
 
 def parameters(site=None):

@@ -38,6 +38,7 @@ PARAMETERS = [
     ('gnss_noise', 0.02), ('course_noise', 0.2), ('minimum_course_speed', 0.3),
     ('gnss_offset', -0.30), ('dead_reckoning', False), ('anchor_to_origin', False),
     ('towed_length', 0.0), ('start_mode', 'autonomous'),
+    ('turn_radius', 0.0), ('headland', 0.0), ('turn_segment_length', 0.5),
     ('route_spacing', 0.25), ('route_period', 2.0),
 ]
 
@@ -156,14 +157,24 @@ class SurveyNavigator(Node):
             'towed_length': self.settings['towed_length'],
             'lidar_yaw': self.settings['lidar_yaw'],
             'goal': self.goal(),
-            # Two spot turns separate consecutive lines
-            'line': 1 + sum(step[0] == 'turn' for step in self.mission[:self.step_index]) // 2,
-            'lines': 1 + sum(step[0] == 'turn' for step in self.mission) // 2,
+            'line': max(1, sum(start <= self.step_index for start in self.line_starts())),
+            'lines': len(self.line_starts()),
             'speed': self.commanded_speed, 'heading': float(np.degrees(self.estimator.heading)),
             'cross_track': float(cross_track), 'detour': float(self.detour_offset),
             'obstacles': int(len(self.obstacle_points)),
             'blocked_in': float(min(self.blocking_distance(), 99.0)) if self.survey_line is not None else 99.0,
         })))
+
+    def line_starts(self):
+        """Index of the first step of every survey line; detours splice extra steps into a line."""
+        return [index for index, step in enumerate(self.mission)
+                if step[0] == 'drive' and (index == 0 or self.mission[index - 1][0] != 'drive')]
+
+    def mission_for(self, bearing, origin):
+        return generate_survey_mission(
+            self.settings['grid_width'], self.settings['grid_length'], self.settings['line_spacing'],
+            bearing, origin, self.settings['turn_radius'], self.settings['headland'],
+            self.settings['turn_segment_length'])
 
     def goal(self):
         if self.step_index < len(self.mission) and self.mission[self.step_index][0] == 'drive':
@@ -171,11 +182,11 @@ class SurveyNavigator(Node):
         return None
 
     def publish_path(self):
-        """Publishes the survey lines as generated; detours are spliced into the mission but never drawn."""
+        """Publishes the survey lines and headland turns as generated; detours are never drawn."""
         message = Path()
         message.header.frame_id = 'map'
         for step in self.mission:
-            if step[0] != 'drive':
+            if step[0] == 'turn':
                 continue
             for point in step[1:]:
                 pose = PoseStamped()
@@ -206,11 +217,11 @@ class SurveyNavigator(Node):
         if self.settings['anchor_to_origin']:
             bearing, origin = self.settings['grid_bearing'], np.zeros(2)
         else:
-            bearing, origin = self.estimator.heading + self.settings['grid_bearing'], track[0]
+            # The alignment run is the first line's run-in, so the grid starts one headland ahead of it
+            bearing = self.estimator.heading + self.settings['grid_bearing']
+            origin = track[0] + self.settings['headland'] * np.array([np.cos(bearing), np.sin(bearing)])
         self.grid = (bearing, origin)
-        self.mission = generate_survey_mission(
-            self.settings['grid_width'], self.settings['grid_length'],
-            self.settings['line_spacing'], bearing, origin)
+        self.mission = self.mission_for(bearing, origin)
         self.publish_path()
         self.get_logger().info(f'Aligned to {np.degrees(self.estimator.heading):+.1f} deg, '
                                f'{len(self.mission)} mission steps')
@@ -265,10 +276,7 @@ class SurveyNavigator(Node):
         self.obstacle_points = np.empty((0, 2))
         self.route = []
         if self.mission:
-            bearing, origin = self.grid
-            self.mission = generate_survey_mission(
-                self.settings['grid_width'], self.settings['grid_length'],
-                self.settings['line_spacing'], bearing, origin)
+            self.mission = self.mission_for(*self.grid)
             self.publish_path()
         self.publish_route()
         self.mode = 'idle'
@@ -323,19 +331,33 @@ class SurveyNavigator(Node):
             return 'HOLDING'
         if abs(self.drive_frame()[2]) > self.settings['path_deviation_limit']:
             return 'LOST'
-        return 'SURVEYING'
+        return 'SURVEYING' if self.mission[self.step_index][0] == 'drive' else 'HEADLAND'
 
     def run_end(self):
-        """Index one past the last drive step of the current straight run."""
+        """Index one past the last step of the current run: a survey line or a headland turn."""
+        kind = self.mission[self.step_index][0]
         index = self.step_index
-        while index < len(self.mission) and self.mission[index][0] == 'drive':
+        while index < len(self.mission) and self.mission[index][0] == kind:
             index += 1
         return index
 
+    def steps_length(self, first, last):
+        return sum(float(np.hypot(*(end - start))) for _, start, end in self.mission[first:last])
+
     def run_remaining(self):
-        start, end = self.survey_line
-        along = line_frame(self.estimator.position[None, :], start, end)[0][0]
-        return float(np.hypot(*(end - start))) - along
+        """Distance left in this run; along the original line while a detour is spliced into it."""
+        if self.mission[self.step_index][0] == 'drive':
+            start, end = self.survey_line
+            along = line_frame(self.estimator.position[None, :], start, end)[0][0]
+            return float(np.hypot(*(end - start))) - along
+        return self.drive_frame()[1] + self.steps_length(self.step_index + 1, self.run_end())
+
+    def stop_ahead(self):
+        """Index of the next spot turn, or the mission end: the only places the rover must stop."""
+        index = self.run_end()
+        while index < len(self.mission) and self.mission[index][0] != 'turn':
+            index += 1
+        return index
 
     def blocking_distance(self):
         """Distance along the planned drive steps to the first return inside the swept corridor."""
@@ -472,7 +494,15 @@ class SurveyNavigator(Node):
             if self.drive_frame()[1] <= 0.0 and self.step_index + 1 < self.run_end():
                 self.step_index += 1
             direction, _, cross_track = self.drive_frame()
-            self.command_publisher.publish(self.drive_command(direction, remaining, cross_track))
+            to_stop = remaining + self.steps_length(self.run_end(), self.stop_ahead())
+            self.command_publisher.publish(self.drive_command(direction, to_stop, cross_track))
+            return
+
+        # A line flows straight into its headland turn and back; only a spot turn needs a standstill
+        if self.run_end() < self.stop_ahead():
+            self.step_index = self.run_end()
+            self.survey_line = None
+            self.detour_offset = 0.0
             return
 
         # Stop fully before an in-place turn; a rolling rover slides straight through it

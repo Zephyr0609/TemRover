@@ -720,3 +720,49 @@ Checked here: `run.sh sim` brings up Gazebo, navigator and page; `field.launch.p
 drivers off starts everything except the CAN bridge (no can0 on the laptop). The GNSS and lidar
 includes are untested until the rover is online: the sllidar package lives only on the rover, and
 whether the F9P already streams NAV-PVT over USB needs checking there.
+
+## 2026-10-09 — U-turns for the towed train
+
+**Hitch.** The PVC links are two rigid V frames pinned at their midpoint, so both hitches are
+off-axle: pivot 1.47 m behind the rover centre (0.47 m bumper + 1.0 m half-link), cart axle 1.62 m
+behind it; Tx–Rx pivot 2.27 m behind the Tx axle, Rx axle 2.15 m behind that (`payload.yaml`).
+Gazebo model, dashboard train model and `turn_design.py` all use this geometry.
+
+**Turn design** (`experiments/turn_design.py`, ideal no-slip train following the rover's path):
+
+| radius | rover–Tx hitch | Tx–Rx hitch | Rx settled after |
+|---|---|---|---|
+| 2.5 m | 64° | 89° | 6.3 m |
+| 4.0 m | 42° | 73° | 2.8 m |
+| 5.0 m | 34° | 61° | 3.6 m |
+| 6.0 m | 29° | 52° | 3.7 m |
+
+The Tx–Rx angle is the limit (its pivot overhangs the Tx axle by 2.27 m). Chosen: 6 m, a bulb
+turn since 2R > 5 m spacing. The train straightens within its own length, so the run past each
+line end is set by the train (7.5 m rover→Rx axle): `headland` 8 m — the Rx clears the line
+before the rover turns and is straight on the next line before it starts. The real joint limit
+of the V frames must be measured; the radius follows from it.
+
+**Code.** `survey_grid.py` lays lines `headland` past both ends and joins them with Π or bulb
+turns sampled as `headland` steps (spot turns kept when `turn_radius` is 0, rover alone). The
+navigator treats a headland run like a line for tracking and holds but never plans a detour on
+it, flows from line to turn without stopping (only a spot turn needs a standstill), decelerates
+only for the next real stop, counts lines by runs, and reports state HEADLAND. Rover alone in
+Gazebo with R 6 m / headland 8 m: three lines, two bulb turns, COMPLETE, on-line offset < 0.01 m
+(`results/u_turn_rover_only.png`).
+
+**Towed train in Gazebo: not controllable yet.** Fixed along the way: the Rx collision box sat on
+the ground (wheels only 0.15 m below its centre, box 0.3 m tall) and dragged; cart wheels lacked a
+rolling-direction friction axis. Remaining, measured on sim time:
+- Yaw authority with the train: ~50 % of commanded rate while driving, ~10 % on the spot.
+- Alignment at 0.3 m/s crawls at 0.1–0.2 m/s and drifts 15° with no turn commanded.
+- On the line one overshooting correction lets the hitch angle grow; from there the carts rotate
+  the rover against a saturated opposite command until both hitches hit 69° (jackknife).
+- The heading estimate stays within a few degrees of truth throughout; this is not the estimator.
+- Making the cart front wheels caster-like did not change the outcome.
+Physically the direction is plausible: the V frame puts the pivot 1.47 m behind the rover centre,
+three times the lever arm of a bumper hitch, against a skid-steer's limited yaw torque. How much
+of it is Gazebo's skid-steer contact model is unknown. Deciding test on the real rover: tow
+straight at 0.9 m/s, then drive one R 6 m turn by hand, and watch whether the rover holds its
+heading. Options if it is real: shorter rover-side V, single-axle or castered Tx, lower steering
+gains with a rate limit when towing, alignment at survey speed.

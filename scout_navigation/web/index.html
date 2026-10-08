@@ -88,11 +88,13 @@ const LIDAR_OFFSET = 0.34;
 // Scout 2.0 (scout_v2.xacro) and the Tx/Rx carts (temrover_carts.xacro), metres in base_link frame
 const ROVER = { body: [0.925, 0.38], wheel: [0.329, 0.117], wheels: [[0.249, 0.292], [0.249, -0.292], [-0.249, 0.292], [-0.249, -0.292]],
                 lidar: 0.34, antenna: -0.30, tow: -0.47 };
-// reach: tow point to cart centre (rod + hitch); axle: tow point to the wheels' effective axle
+// Each PVC link is pinned at its midpoint. reach: pivot to cart centre; axle: pivot to the wheels' effective axle;
+// hitch: cart front where its V frame starts; tow: where the next V frame leaves this cart
 const CARTS = [
-  { reach: 2.32, axle: 2.62, hitch: 0.32, tow: -0.923, wheel: [0.26, 0.096], wheels: [[0.1, 0.3], [0.1, -0.3], [-0.7, 0.3], [-0.7, -0.3]] },
-  { reach: 3.88, axle: 3.88, hitch: 0.58, wheel: [0.26, 0.096], wheels: [[0.33, 0], [-0.17, 0.25], [-0.17, -0.25]] },
+  { reach: 1.32, axle: 1.62, hitch: 0.32, tow: -0.923, wheel: [0.26, 0.096], wheels: [[0.1, 0.3], [0.1, -0.3], [-0.7, 0.3], [-0.7, -0.3]] },
+  { reach: 2.23, axle: 2.15, hitch: 0.58, wheel: [0.26, 0.096], wheels: [[0.33, 0], [-0.17, 0.25], [-0.17, -0.25]] },
 ];
+const PIVOTS = [1.0, 1.65];
 const CART_BODY = [1.0, 0.6];
 const view = { zoom: 1, cx: 0, cy: 0 };
 const state = { lines: [], route: [], pose: null, scan: [], obstacles: new Map(), status: null };
@@ -155,7 +157,7 @@ document.getElementById('stop').onclick = () => {
   stopTopic.publish(new ROSLIB.Message({ data: !(state.status && state.status.emergency_stop) }));
 };
 
-const STATE_COLOUR = { SURVEYING: 'var(--green)', TURNING: 'var(--green)', ALIGNING: 'var(--blue)', COMPLETE: 'var(--blue)',
+const STATE_COLOUR = { SURVEYING: 'var(--green)', TURNING: 'var(--green)', HEADLAND: 'var(--green)', ALIGNING: 'var(--blue)', COMPLETE: 'var(--blue)',
                        HOLDING: 'var(--amber)', WAITING_FOR_FIX: 'var(--amber)', LOST: 'var(--red)', STOPPED: 'var(--red)' };
 function renderStatus() {
   const s = state.status;
@@ -239,37 +241,40 @@ function drawArrow(X, Y, a, b, size) {
   ctx.restore();
 }
 
-// Rigid drawbar trailers: each cart yaws about its tow point so that its axle follows the tow point's motion
-const train = { previous: null, headings: null };
+// Each cart yaws about the midpoint pivot of its PVC link so that its axle follows the pivot's motion
+const train = { previous: null, headings: null, links: [] };
+const along = (point, heading, distance) => [point[0] + distance * Math.cos(heading), point[1] + distance * Math.sin(heading)];
+
 function updateTrain() {
   const { x, y, yaw } = state.pose;
-  let [tx, ty] = [x + ROVER.tow * Math.cos(yaw), y + ROVER.tow * Math.sin(yaw)];
+  let tow = along([x, y], yaw, ROVER.tow), towHeading = yaw;
   if (!train.headings) train.headings = CARTS.map(() => yaw);
-  const tows = [];
+  const pivots = [];
+  train.links = [];
   CARTS.forEach((cart, i) => {
+    const pivot = along(tow, towHeading, -PIVOTS[i]);
     if (train.previous) {
-      const [dx, dy] = [tx - train.previous[i][0], ty - train.previous[i][1]], step = Math.hypot(dx, dy);
+      const [dx, dy] = [pivot[0] - train.previous[i][0], pivot[1] - train.previous[i][1]], step = Math.hypot(dx, dy);
       if (step > 1e-4) train.headings[i] += step / cart.axle * Math.sin(Math.atan2(dy, dx) - train.headings[i]);
     }
-    tows.push([tx, ty]);
+    pivots.push(pivot);
     const heading = train.headings[i];
-    cart.pose = [tx - cart.reach * Math.cos(heading), ty - cart.reach * Math.sin(heading), heading];
-    if (cart.tow !== undefined) [tx, ty] = [cart.pose[0] + cart.tow * Math.cos(heading), cart.pose[1] + cart.tow * Math.sin(heading)];
+    cart.pose = [...along(pivot, heading, -cart.reach), heading];
+    train.links.push([tow, pivot, along(cart.pose, heading, cart.hitch)]);
+    if (cart.tow !== undefined) [tow, towHeading] = [along(cart.pose, heading, cart.tow), heading];
   });
-  train.previous = tows;
+  train.previous = pivots;
 }
 
 function drawTrain(X, Y, scale) {
   if (!(state.status && state.status.towed_length > 0)) return;
   updateTrain();
   ctx.strokeStyle = '#1f2937'; ctx.lineWidth = Math.max(1, 0.04 * scale);
-  let [tx, ty] = [state.pose.x + ROVER.tow * Math.cos(state.pose.yaw), state.pose.y + ROVER.tow * Math.sin(state.pose.yaw)];
-  for (const cart of CARTS) {
-    const [cx, cy, heading] = cart.pose;
-    ctx.beginPath(); ctx.moveTo(X(tx), Y(ty)); ctx.lineTo(X(cx + cart.hitch * Math.cos(heading)), Y(cy + cart.hitch * Math.sin(heading))); ctx.stroke();
-    drawVehicle(X, Y, scale, cx, cy, heading, CART_BODY, cart.wheel, cart.wheels);
-    if (cart.tow !== undefined) [tx, ty] = [cx + cart.tow * Math.cos(heading), cy + cart.tow * Math.sin(heading)];
+  for (const [tow, pivot, front] of train.links) {
+    ctx.beginPath(); ctx.moveTo(X(tow[0]), Y(tow[1])); ctx.lineTo(X(pivot[0]), Y(pivot[1])); ctx.lineTo(X(front[0]), Y(front[1])); ctx.stroke();
+    ctx.fillStyle = '#d93025'; ctx.beginPath(); ctx.arc(X(pivot[0]), Y(pivot[1]), Math.max(2, 0.06 * scale), 0, 2 * Math.PI); ctx.fill();
   }
+  for (const cart of CARTS) drawVehicle(X, Y, scale, ...cart.pose, CART_BODY, cart.wheel, cart.wheels);
 }
 
 function draw() {

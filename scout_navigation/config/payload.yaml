@@ -2,3 +2,11 @@
   ros__parameters:
     # Tx and Rx carts in tow: the Rx cart's rear wheels sit 7.76 m behind base_link (CAD), body beyond
     towed_length: 8.5
+    # Each PVC link is two rigid V frames pinned at its midpoint, so both hitches are off-axle:
+    # pivot distance behind the towing unit's axle (rover centre, then Tx axle) and pivot to the towed axle
+    hitch_offsets: [1.47, 2.27]
+    trailer_lengths: [1.62, 2.15]
+    # From experiments/turn_design.py: radius keeps the Tx-Rx hitch near 52 deg; the rover drives
+    # one train length past every line end so the Rx clears the line and is straight on the next
+    turn_radius: 6.0
+    headland: 8.0

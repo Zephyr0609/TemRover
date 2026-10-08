@@ -11,8 +11,8 @@ MARKER_RADIUS = 0.45
 
 
 def segments(mission):
-    """One ribbon per straight run of the mission, laid on the grid anchored at the origin."""
-    for _, start, end in (step for step in mission if step[0] == 'drive'):
+    """One ribbon per driven step of the mission, laid on the grid anchored at the origin."""
+    for _, start, end in (step for step in mission if step[0] != 'turn'):
         offset = end - start
         yield (start + end) / 2.0, float(np.hypot(*offset)), float(np.arctan2(offset[1], offset[0]))
 

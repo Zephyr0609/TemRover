@@ -7,6 +7,10 @@
     grid_width: 50.0
     grid_length: 50.0
     line_spacing: 5.0
+    # 0: spot turns at each line end, for the rover alone; the towed train sets a driven U-turn (payload.yaml)
+    turn_radius: 0.0
+    headland: 0.0
+    turn_segment_length: 0.5
 
     # 0.9 m/s is the payload survey speed; the Scout tops out at 1.5 m/s but the towed train oscillates there
     cruise_speed: 0.9

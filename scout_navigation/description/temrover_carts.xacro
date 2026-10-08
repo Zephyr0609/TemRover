@@ -10,7 +10,7 @@
     <xacro:property name="yaw_limit" value="1.2" />
     <xacro:property name="pitch_limit" value="0.5" />
 
-    <xacro:macro name="cart_wheel" params="cart name *origin">
+    <xacro:macro name="cart_wheel" params="cart name *origin lateral_friction:=0.6">
         <link name="${cart}_${name}_wheel_link">
             <inertial>
                 <mass value="1.0" />
@@ -36,33 +36,56 @@
             <axis xyz="0 1 0" />
         </joint>
         <gazebo reference="${cart}_${name}_wheel_link">
+            <!-- fdir1 in the wheel frame, so mu1 acts along the rolling direction -->
+            <fdir1>1 0 0</fdir1>
             <mu1>0.8</mu1>
-            <mu2>0.6</mu2>
+            <mu2>${lateral_friction}</mu2>
             <material>Gazebo/DarkGrey</material>
         </gazebo>
     </xacro:macro>
 
-    <!-- Yaw then pitch, matching the four hitch degrees of freedom of the Simscape model -->
+    <!-- Each PVC link is two rigid V frames pinned at its midpoint: the front half is fixed to the
+         towing unit, the yaw joint sits halfway, and the rear half pitches with the towed cart -->
     <xacro:macro name="cart_body" params="cart parent mass length width height
                                           tow_x tow_z rod front_x front_z">
-        <link name="${cart}_rod_link">
+        <link name="${cart}_tow_link">
             <inertial>
-                <origin xyz="${-rod/2} 0 0" />
-                <mass value="4.0" />
-                <inertia ixx="0.01" ixy="0" ixz="0" iyy="${4.0*rod*rod/12}" iyz="0"
-                         izz="${4.0*rod*rod/12}" />
+                <origin xyz="${-rod/4} 0 0" />
+                <mass value="2.0" />
+                <inertia ixx="0.01" ixy="0" ixz="0" iyy="${2.0*rod*rod/48}" iyz="0"
+                         izz="${2.0*rod*rod/48}" />
             </inertial>
             <visual>
-                <origin xyz="${-rod/2} 0 0" rpy="0 ${pi/2} 0" />
+                <origin xyz="${-rod/4} 0 0" rpy="0 ${pi/2} 0" />
                 <geometry>
-                    <cylinder length="${rod}" radius="0.02" />
+                    <cylinder length="${rod/2}" radius="0.02" />
+                </geometry>
+            </visual>
+        </link>
+        <joint name="${cart}_tow_frame" type="fixed">
+            <parent link="${parent}" />
+            <child link="${cart}_tow_link" />
+            <origin xyz="${tow_x} 0 ${tow_z}" />
+        </joint>
+
+        <link name="${cart}_rod_link">
+            <inertial>
+                <origin xyz="${-rod/4} 0 0" />
+                <mass value="2.0" />
+                <inertia ixx="0.01" ixy="0" ixz="0" iyy="${2.0*rod*rod/48}" iyz="0"
+                         izz="${2.0*rod*rod/48}" />
+            </inertial>
+            <visual>
+                <origin xyz="${-rod/4} 0 0" rpy="0 ${pi/2} 0" />
+                <geometry>
+                    <cylinder length="${rod/2}" radius="0.02" />
                 </geometry>
             </visual>
         </link>
         <joint name="${cart}_hitch_yaw" type="revolute">
-            <parent link="${parent}" />
+            <parent link="${cart}_tow_link" />
             <child link="${cart}_rod_link" />
-            <origin xyz="${tow_x} 0 ${tow_z}" />
+            <origin xyz="${-rod/2} 0 0" />
             <axis xyz="0 0 1" />
             <limit lower="${-yaw_limit}" upper="${yaw_limit}" effort="500" velocity="10" />
             <dynamics damping="${yaw_damping}" />
@@ -98,7 +121,7 @@
         <joint name="${cart}_hitch_pitch" type="revolute">
             <parent link="${cart}_rod_link" />
             <child link="${cart}_link" />
-            <origin xyz="${-rod-front_x} 0 ${front_z}" />
+            <origin xyz="${-rod/2-front_x} 0 ${front_z}" />
             <axis xyz="0 1 0" />
             <limit lower="${-pitch_limit}" upper="${pitch_limit}" effort="500" velocity="10" />
             <dynamics damping="${pitch_damping}" />
@@ -122,9 +145,10 @@
         <origin xyz="-0.700 -0.300 -0.215" />
     </xacro:cart_wheel>
 
-    <!-- Rx sled: 15 kg, single centre wheel in front of a rear pair -->
+    <!-- Rx sled: 15 kg, single centre wheel in front of a rear pair; its wheels sit only 0.15 m below
+         its centre, so the body is 0.2 m tall to clear the ground -->
     <xacro:cart_body cart="rx_cart" parent="tx_cart_link" mass="15.0"
-                     length="1.0" width="0.6" height="0.3"
+                     length="1.0" width="0.6" height="0.2"
                      tow_x="-0.923" tow_z="-0.131" rod="3.3" front_x="0.58" front_z="0.066" />
     <xacro:cart_wheel cart="rx_cart" name="front">
         <origin xyz="0.330 0.0 -0.019" />
