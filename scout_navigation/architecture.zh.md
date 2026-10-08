@@ -67,7 +67,7 @@ flowchart LR
 | 文件 | 内容 |
 |---|---|
 | `survey.yaml` | 所有默认参数：速度、避障距离、激光安装、滤波噪声 |
-| `field_today.yaml` | 短测量现场模板：起点坐标、方向、线数、无 IMU、雷达朝后 |
+| `field_today.yaml` | 短测量现场模板：起点坐标、方向、线数、雷达朝后 |
 | `south_lawn.yaml` | 南草坪 30 × 30 m 测区（MGA55 测量点） |
 | `payload.yaml` | 拖车长度，页面画拖车用 |
 | `obstacles.yaml` | 仿真里的 7 个测试障碍物 |
