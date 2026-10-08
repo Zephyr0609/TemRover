@@ -48,6 +48,11 @@ Regenerate the survey terrain after changing its parameters:
 python3 experiments/make_terrain.py
 ```
 
+The IMU driver (`imu_driver`, adapted from ej5962/Capstone) reads the ICM-20948 on the
+LattePanda's I2C bus 1 and needs the Pimoroni library on the rover: `pip install icm20948`.
+Keep the rover still for the first 3 s after launch while it measures the gyro bias.
+`imu:=false` on `hardware.launch.py` runs without it (set `dead_reckoning: true` in the site file).
+
 Hardware needs SocketCAN up and the transmitter in command mode:
 
 ```

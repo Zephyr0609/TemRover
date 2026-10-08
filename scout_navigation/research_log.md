@@ -696,3 +696,14 @@ outdated explainer pages and their images. `make_path_marker.py` now draws the s
 navigator drives. `architecture.zh.md` rewritten for the current code. `General/` (project
 documents) is ignored. Regression in simulation, seven obstacles, 0.9 m/s: clearances
 +0.30 .. +0.57 m, no holds, no LOST. Everything removed is still in git history.
+
+## 2026-10-09 — IMU driver
+
+Took ej5962/Capstone `imu_processing_raw.py` (ICM-20948 over I2C on the LattePanda) into the
+package as `imu_driver`: same reads and unit conversions, now publishing `imu/data` directly with
+timestamp and `imu_link` frame, identity orientation (the navigator's ground filter treats it as
+level), and the gyro bias averaged over the first 3 s at power-up and subtracted. `imu_yaw_sign`
+covers an upside-down mount. Started by `hardware.launch.py` (`imu:=false` to skip);
+`field_today.yaml` switches `dead_reckoning` off. Tested with a stand-in sensor (0.8 deg/s bias,
+then a 20 deg/s turn): bias removed, turn reported as 0.349 rad/s. Not yet run on the real chip;
+the first field check is that a left turn reads positive.

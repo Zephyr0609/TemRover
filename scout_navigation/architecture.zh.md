@@ -45,6 +45,7 @@ flowchart LR
 | `survey_grid.py` | 生成测线任务：直线 + 原地转 90° |
 | `geodesy.py` | 经纬度 ↔ 东北坐标（米） |
 | `scout_can_bridge.py` | `/cmd_vel` ↔ Scout 2.0 CAN 帧；0.5 s 收不到指令自动停车 |
+| `imu_driver.py` | 读 ICM-20948（改自 ej5962/Capstone），开机静止 3 s 测陀螺零偏后发 `imu/data` |
 
 **状态机**（`survey_navigator.py`）
 

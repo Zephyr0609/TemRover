@@ -33,6 +33,7 @@ setup(
         'console_scripts': [
             'survey_navigator = scout_navigation.survey_navigator:main',
             'scout_can_bridge = scout_navigation.scout_can_bridge:main',
+            'imu_driver = scout_navigation.imu_driver:main',
         ],
     },
 )

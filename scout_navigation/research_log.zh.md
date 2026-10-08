@@ -1141,3 +1141,10 @@ Tx 位置误差均值 0.20 m；Rx 的 2.0 m 不算干净的测试，因为那次
 `turn_radius` / `point_spacing` 参数，一次性的 `rover_mission.py`，已删除规则的示意图（换边、扫掠圆），过时的讲解页和配图。
 `make_path_marker.py` 改为画导航节点真正走的任务。`architecture.zh.md` 按现在的代码重写。`General/`（项目资料）加入忽略。
 仿真回归，七障碍、0.9 m/s：间距 +0.30 .. +0.57 m，零停车、零 LOST。删除的内容都还在 git 历史里。
+
+## 2026-10-09 — IMU 驱动
+
+把 ej5962/Capstone 的 `imu_processing_raw.py`（LattePanda I2C 上的 ICM-20948）收进本包，节点名 `imu_driver`：读数和单位换算不变，
+直接发 `imu/data`，带时间戳和 `imu_link` 坐标系，姿态填单位四元数（导航节点的地面过滤当作水平），开机前 3 s 平均陀螺零偏并扣除。
+`imu_yaw_sign` 应对芯片倒装。由 `hardware.launch.py` 启动（`imu:=false` 跳过）；`field_today.yaml` 关掉 `dead_reckoning`。
+用假传感器测过（0.8°/s 零偏，然后 20°/s 转弯）：零偏扣除，转弯输出 0.349 rad/s。还没在真芯片上跑；上车第一件事是确认左转读数为正。

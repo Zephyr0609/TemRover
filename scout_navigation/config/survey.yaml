@@ -58,5 +58,10 @@
     gnss_offset: -0.30
 
     can_interface: can0
+
+    # ICM-20948 driver: rover stands still for imu_bias_duration at power-up; flip the sign if a left turn reads negative
+    imu_rate: 100.0
+    imu_bias_duration: 3.0
+    imu_yaw_sign: 1.0
     # The rover waits until the operator presses Start on the dashboard
     start_mode: idle

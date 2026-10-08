@@ -1,9 +1,10 @@
-"""Real rover: navigator and CAN bridge, with the towed train and an optional site layered over survey.yaml."""
+"""Real rover: navigator, CAN bridge and IMU driver, with the towed train and a site layered over survey.yaml."""
 import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
@@ -18,6 +19,8 @@ def generate_launch_description():
                               description='Site parameters layered over survey.yaml, e.g. south_lawn.yaml'),
         DeclareLaunchArgument('payload', default_value=PAYLOAD,
                               description='Towed-train parameters; pass survey.yaml when driving without the carts'),
+        DeclareLaunchArgument('imu', default_value='true',
+                              description='Start the ICM-20948 driver; false runs on the chassis yaw rate'),
 
         Node(package='scout_navigation', executable='survey_navigator', name='survey_navigator',
              output='screen', emulate_tty=True,
@@ -25,4 +28,7 @@ def generate_launch_description():
 
         Node(package='scout_navigation', executable='scout_can_bridge', name='scout_can_bridge',
              output='screen', parameters=[SURVEY]),
+
+        Node(package='scout_navigation', executable='imu_driver', name='imu_driver', output='screen',
+             condition=IfCondition(LaunchConfiguration('imu')), parameters=[SURVEY]),
     ])
