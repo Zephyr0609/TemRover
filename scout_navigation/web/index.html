@@ -157,7 +157,7 @@ document.getElementById('stop').onclick = () => {
   stopTopic.publish(new ROSLIB.Message({ data: !(state.status && state.status.emergency_stop) }));
 };
 
-const STATE_COLOUR = { SURVEYING: 'var(--green)', TURNING: 'var(--green)', HEADLAND: 'var(--green)', ALIGNING: 'var(--blue)', COMPLETE: 'var(--blue)',
+const STATE_COLOUR = { SURVEYING: 'var(--green)', TURNING: 'var(--green)', HEADLAND: 'var(--green)', COMPLETE: 'var(--blue)',
                        HOLDING: 'var(--amber)', WAITING_FOR_FIX: 'var(--amber)', LOST: 'var(--red)', STOPPED: 'var(--red)' };
 function renderStatus() {
   const s = state.status;

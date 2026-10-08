@@ -3,6 +3,7 @@
     # Survey area — Royal Park test grid from the 12/08 minutes
     origin_latitude: -37.7963
     origin_longitude: 144.9614
+    # Direction of line 1, radians anticlockwise from east; the rover starts facing this way
     grid_bearing: 0.0
     grid_width: 50.0
     grid_length: 50.0
@@ -60,6 +61,8 @@
     gnss_noise: 0.02
     # Antenna sits 0.30 m behind base_link (URDF navsat_link), so it swings when the rover yaws
     gnss_offset: -0.30
+    # No alignment run: the rover is placed facing along line 1 to within about 20 deg
+    initial_heading_noise: 0.35
 
     can_interface: can0
 

@@ -23,7 +23,7 @@ PARAMETERS = [
     ('cruise_speed', 1.5), ('max_angular_velocity', 1.5),
     ('max_deceleration', 6.9), ('heading_gain', 1.5), ('cross_track_gain', 0.8),
     ('arrival_tolerance', 0.05), ('halt_speed', 0.05), ('path_deviation_limit', 3.0),
-    ('control_period', 0.05), ('startup_delay', 5.0), ('alignment_distance', 8.0), ('alignment_speed', 0.3),
+    ('control_period', 0.05), ('startup_delay', 5.0), ('initial_heading_noise', 0.35),
     ('rotation_rate', 1.0), ('rotation_damping', 0.6), ('rotation_tolerance', 0.04),
     ('rotation_settled_rate', 0.05),
     ('obstacle_standoff', 0.5), ('obstacle_hysteresis', 0.1), ('obstacle_clearance', 0.15),
@@ -65,12 +65,11 @@ class SurveyNavigator(Node):
         self.tangent_plane = LocalTangentPlane(self.settings['origin_latitude'],
                                                self.settings['origin_longitude'])
         self.mission = []
-        self.alignment_track = []
         self.estimator = PoseEstimator(self.settings['position_process_noise'],
                                        self.settings['yaw_process_noise'], self.settings['gnss_noise'],
                                        self.settings['course_noise'],
                                        self.settings['minimum_course_speed'],
-                                       self.settings['gnss_offset'])
+                                       self.settings['gnss_offset'], self.settings['initial_heading_noise'])
 
         self.step_index = 0
         self.commanded_speed = 0.0
@@ -196,43 +195,27 @@ class SurveyNavigator(Node):
                 message.poses.append(pose)
         self.path_publisher.publish(message)
 
-    def align(self):
-        """Drives straight to observe heading — a single antenna cannot find it standing still."""
-        self.alignment_track.append(self.estimator.position.copy())
-        track = np.array(self.alignment_track)
-        if np.hypot(*(track[-1] - track[0])) < self.settings['alignment_distance']:
-            # Heading is unknown yet, but the gyro can still hold the run straight against any drag
-            command = Twist()
-            command.linear.x = self.settings['alignment_speed']
-            command.angular.z = -self.settings['rotation_damping'] * self.yaw_rate
-            self.commanded_speed = command.linear.x
-            self.command_publisher.publish(command)
-            return
-
-        direction = np.linalg.svd(track - track.mean(axis=0))[2][0]
-        if direction @ (track[-1] - track[0]) < 0.0:
-            direction = -direction
-
-        self.estimator.state[2] = np.arctan2(direction[1], direction[0])
-        if self.settings['anchor_to_origin']:
-            bearing, origin = self.settings['grid_bearing'], np.zeros(2)
-        else:
-            # The alignment run is the first line's run-in, so the grid starts one headland ahead of it
-            bearing = self.estimator.heading + self.settings['grid_bearing']
-            origin = track[0] + self.settings['headland'] * np.array([np.cos(bearing), np.sin(bearing)])
-        self.grid = (bearing, origin)
-        self.mission = self.mission_for(bearing, origin)
-        self.publish_path()
-        self.get_logger().info(f'Aligned to {np.degrees(self.estimator.heading):+.1f} deg, '
-                               f'{len(self.mission)} mission steps')
-        self.halt()
-
     def on_fix(self, message):
         position = self.tangent_plane.to_local(message.latitude, message.longitude)
         if not self.has_fix:
-            self.estimator.state[:2] = self.estimator.antenna_to_base(position)
-            self.has_fix = True
+            self.start_survey(position)
         self.estimator.update_position(position)
+
+    def start_survey(self, antenna_position):
+        """No alignment run: the rover stands facing along line 1, and GNSS course corrects that once it moves."""
+        bearing = self.settings['grid_bearing']
+        self.estimator.state[2] = bearing
+        self.estimator.state[:2] = self.estimator.antenna_to_base(antenna_position)
+        if self.settings['anchor_to_origin']:
+            origin = np.zeros(2)
+        else:
+            # Line 1's run-in starts where the rover stands, so the grid begins one headland ahead
+            origin = self.estimator.position + self.settings['headland'] * np.array([np.cos(bearing), np.sin(bearing)])
+        self.grid = (bearing, origin)
+        self.mission = self.mission_for(bearing, origin)
+        self.publish_path()
+        self.has_fix = True
+        self.get_logger().info(f'Survey laid out at {np.degrees(bearing):+.1f} deg, {len(self.mission)} mission steps')
 
     def on_velocity(self, message):
         self.estimator.update_course(np.array([message.twist.twist.linear.x,
@@ -316,8 +299,6 @@ class SurveyNavigator(Node):
         settling = (self.get_clock().now() - self.started_at).nanoseconds * 1e-9
         if not self.has_fix or settling < self.settings['startup_delay']:
             return 'WAITING_FOR_FIX'
-        if not self.mission:
-            return 'ALIGNING'
         if self.step_index >= len(self.mission):
             return 'COMPLETE'
 
@@ -468,10 +449,6 @@ class SurveyNavigator(Node):
 
         if state in HALTED_STATES:
             self.halt()
-            return
-
-        if state == 'ALIGNING':
-            self.align()
             return
 
         if state == 'TURNING':

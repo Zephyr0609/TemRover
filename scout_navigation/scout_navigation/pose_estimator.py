@@ -7,7 +7,7 @@ class PoseEstimator:
     """EKF over base_link east, north and yaw, propagated by wheel speed and IMU yaw rate."""
 
     def __init__(self, position_process_noise, yaw_process_noise, gnss_noise, course_noise,
-                 minimum_course_speed, antenna_offset):
+                 minimum_course_speed, antenna_offset, initial_heading_noise):
         self.process_noise = np.diag([position_process_noise, position_process_noise,
                                       yaw_process_noise])
         self.gnss_noise = gnss_noise ** 2 * np.eye(2)
@@ -16,7 +16,7 @@ class PoseEstimator:
         self.antenna_offset = antenna_offset
 
         self.state = np.zeros(3)
-        self.covariance = np.diag([gnss_noise ** 2, gnss_noise ** 2, np.pi ** 2])
+        self.covariance = np.diag([gnss_noise ** 2, gnss_noise ** 2, initial_heading_noise ** 2])
 
     @property
     def position(self):

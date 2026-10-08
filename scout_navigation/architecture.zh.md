@@ -55,8 +55,7 @@ flowchart LR
 
 | 状态 | 含义 |
 |---|---|
-| `WAITING_FOR_FIX` | 等 GNSS 定位 |
-| `ALIGNING` | 直行 8 m 求初始航向 |
+| `WAITING_FOR_FIX` | 等 GNSS 定位；拿到定位就按场地参数铺好测线，初始航向取第一条线方向 |
 | `SURVEYING` | 跑测线，遇障自动绕 |
 | `TURNING` | 线尾原地转 90°（只用于不挂拖车） |
 | `HEADLAND` | 挂拖车时线尾不停车，直接沿 U 型弯开到下一条线 |

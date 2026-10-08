@@ -766,3 +766,26 @@ of it is Gazebo's skid-steer contact model is unknown. Deciding test on the real
 straight at 0.9 m/s, then drive one R 6 m turn by hand, and watch whether the rover holds its
 heading. Options if it is real: shorter rover-side V, single-axle or castered Tx, lower steering
 gains with a rate limit when towing, alignment at survey speed.
+
+## 2026-10-09 — Alignment run removed; towed Gazebo physics not usable
+
+**No alignment.** On the first GNSS fix the navigator lays out the mission and takes its initial
+heading from line 1's direction (`grid_bearing`, now an absolute bearing); the rover is placed
+facing along line 1 to within ~20° (`initial_heading_noise` 0.35 rad) and GNSS course corrects the
+rest once moving. Unanchored sites start line 1's run-in where the rover stands. Rover alone,
+three lines with R 6 m U-turns: COMPLETE, on-line offset < 0.01 m.
+
+**Towed Gazebo.** Four cart/hitch models tried; none gives a steerable rover:
+1. Pin with yaw only, cart-side half pitching at the cart: the cantilevered half carried the Tx
+   front weight into the rover; jackknife on line 1.
+2. Pin with yaw and pitch, rigid V on the cart, real wheel sets (Tx 4, Rx 3): one axle of each cart
+   hangs in the air (rigid V + pin + two axles is over-determined); no yaw while towing.
+3. Isotropic cart wheel friction instead of a wheel-frame friction axis: no change.
+4. One effective axle per cart (the determinate trailer turn_design.py assumes): the train tracks
+   perfectly straight, but the rover's yaw stays frozen while pulling (commanded up to 1.5 rad/s),
+   though it rotates on the spot.
+My earlier open-loop rate tests were also misleading: ±0.5 rad/s at 0.9 m/s is a 1.8 m circle the
+train cannot follow, so each test jackknifed and the next started folded. Gazebo/DART skid-steer
+contact under drawbar load is not trustworthy here. Next: validate guidance with the kinematic
+train model (rover in Gazebo, carts computed as on the dashboard) and settle the real behaviour
+with the field test (tow straight, one R 6 m turn by hand).
