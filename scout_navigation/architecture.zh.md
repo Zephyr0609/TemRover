@@ -46,7 +46,7 @@ flowchart LR
 | `pose_estimator.py` | EKF：轮速 + 偏航率预测，GNSS 位置和航迹角修正，含天线杆臂 |
 | `obstacle_monitor.py` | 激光数据处理：去地面、去坡面、只留前方 60° 扇区、转到世界坐标 |
 | `detour.py` | 绕行几何：选边、只看最近一组障碍、按侧向加速度算坡道长度、绕完马上回线 |
-| `survey_grid.py` | 生成测线任务：直线 + 原地转 90° |
+| `survey_grid.py` | 生成测线任务：不挂拖车是直线 + 原地转 90°；挂拖车是每条线两头各多开一段，再接 U 型弯（Π 形或水滴形） |
 | `geodesy.py` | 经纬度 ↔ 东北坐标（米） |
 | `scout_can_bridge.py` | `/cmd_vel` ↔ Scout 2.0 CAN 帧；0.5 s 收不到指令自动停车 |
 | `imu_driver.py` | 读 ICM-20948（改自 ej5962/Capstone），开机静止 3 s 测陀螺零偏后发 `imu/data` |
@@ -58,7 +58,8 @@ flowchart LR
 | `WAITING_FOR_FIX` | 等 GNSS 定位 |
 | `ALIGNING` | 直行 8 m 求初始航向 |
 | `SURVEYING` | 跑测线，遇障自动绕 |
-| `TURNING` | 线尾原地转 90° |
+| `TURNING` | 线尾原地转 90°（只用于不挂拖车） |
+| `HEADLAND` | 挂拖车时线尾不停车，直接沿 U 型弯开到下一条线 |
 | `HOLDING` | 前方 1 m 内堵住，停车等 |
 | `STOPPED` | 急停；清除后从第 1 条线重来 |
 | `LOST` | 偏离测线超过 3 m，停车 |
@@ -73,7 +74,7 @@ flowchart LR
 | `survey.yaml` | 所有默认参数：速度、避障距离、激光安装、滤波噪声 |
 | `field_today.yaml` | 短测量现场模板：起点坐标、方向、线数、雷达朝后 |
 | `south_lawn.yaml` | 南草坪 30 × 30 m 测区（MGA55 测量点） |
-| `payload.yaml` | 拖车长度，页面画拖车用 |
+| `payload.yaml` | 拖车几何（PVC 连杆中点铰接）、U 型弯半径 6 m、线两头多开 8 m |
 | `ublox_rover.yaml` | ZED-F9P 驱动：只读不改接收机配置，发 `gps/fix`、`gps/fix_velocity` |
 | `obstacles.yaml` | 仿真里的 7 个测试障碍物 |
 | `survey.rviz` | rviz 视图 |
@@ -99,6 +100,7 @@ flowchart LR
 | `record_video.py` / `compose_video.py` | 录俯视视频、两段并排 |
 | `make_avoidance_figures.py` | 避障原理示意图 1–4 |
 | `make_path_marker.py` / `make_terrain.py` | 生成 Gazebo 测线标记和起伏地形 |
+| `turn_design.py` | 拖车运动学：按铰接几何选 U 型弯半径和线两头的延长距离 |
 | `bench_scan.py` | 车架空时用的假激光，台架测试绕行 |
 | `can_loopback_test.py` | 虚拟 CAN 上测 CAN 桥 |
 | `rover_nudge.py` / `spin_test.py` | 实车直行、原地转的标定 |
