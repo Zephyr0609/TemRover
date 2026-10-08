@@ -4,11 +4,27 @@ Autonomous grid-survey navigation for the Scout 2.0 rover towing the EM Loupe â€
 
 ## Run
 
+One command per experiment, from this folder:
+
+```
+./run.sh field site:=field_today.yaml     # real rover: GNSS, lidar, IMU, camera, navigator, CAN bridge, dashboard
+./run.sh sim                              # Gazebo with the seven test obstacles and the dashboard
+./run.sh sim site:=south_lawn.yaml gz_args:='-r -s -v 2'   # headless, another site
+```
+
+`run.sh` sources the workspace (`ROS_WS`, default `~/ros2_ws`), brings `can0` up for the field run,
+prints the dashboard address and starts `field.launch.py` or `sim.launch.py`. A bare site name is
+looked up in `config/`. Field switches: `imu:=false`, `gnss:=false`, `lidar:=false`, `camera:=false`,
+`gnss_port:=/dev/ttyACM0`, `lidar_port:=/dev/ttyUSB0`. The GNSS driver keeps the receiver's own
+configuration (`config/ublox_rover.yaml`); the ZED-F9P must already output UBX NAV-PVT on USB and
+receive its RTK corrections. The lidar uses Slamtec's `sllidar_ros2` S2 launch, built on the rover.
+
+The single launch files underneath still work on their own:
+
 ```
 colcon build --symlink-install && source install/setup.bash
 ros2 launch scout_navigation gazebo.launch.py                        # Gazebo Fortress
-ros2 launch scout_navigation gazebo.launch.py gz_args:='-r -v 2 -s'  # Gazebo, headless
-ros2 launch scout_navigation hardware.launch.py                      # real Scout over CAN
+ros2 launch scout_navigation hardware.launch.py                      # navigator, CAN bridge, IMU
 ros2 launch scout_navigation dashboard.launch.py                     # operator page on :8000
 ```
 
@@ -62,7 +78,8 @@ sudo ip link set can0 up type can bitrate 500000
 ## Experiments
 
 ```
-PYTHONPATH=.:experiments python3 experiments/detour_run.py 230 results/run.png   # seven-obstacle test against a running simulation
+./run.sh sim bystander:=true &   # the corner pole that detour_run.py removes mid-run
+PYTHONPATH=.:experiments python3 experiments/detour_run.py 230 results/run.png
 ```
 
 Findings and open questions are tracked in `research_log.md`, with a Chinese copy in

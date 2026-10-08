@@ -707,3 +707,16 @@ covers an upside-down mount. Started by `hardware.launch.py` (`imu:=false` to sk
 `field_today.yaml` switches `dead_reckoning` off. Tested with a stand-in sensor (0.8 deg/s bias,
 then a 20 deg/s turn): bias removed, turn reported as 0.349 rad/s. Not yet run on the real chip;
 the first field check is that a left turn reads positive.
+
+## 2026-10-09 — One command per experiment
+
+`run.sh field` / `run.sh sim` replace the four or five terminals. `field.launch.py` includes
+`hardware.launch.py` (navigator, CAN bridge, IMU) and `dashboard.launch.py`, and adds the ZED-F9P
+(`ublox_gps`, `config_on_startup: false` so the receiver keeps its u-center setup, `fix` and
+`fix_velocity` remapped to `gps/`) and Slamtec's S2 launch, each switchable, ports as arguments.
+`sim.launch.py` is Gazebo plus the dashboard on sim time. The corner bystander pole now only spawns
+with `bystander:=true` (for `detour_run.py`), so a plain demo no longer stops at the end of line 1.
+Checked here: `run.sh sim` brings up Gazebo, navigator and page; `field.launch.py` with the
+drivers off starts everything except the CAN bridge (no can0 on the laptop). The GNSS and lidar
+includes are untested until the rover is online: the sllidar package lives only on the rover, and
+whether the F9P already streams NAV-PVT over USB needs checking there.

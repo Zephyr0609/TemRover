@@ -28,11 +28,15 @@ flowchart LR
 
 ## 三、运行方式
 
+一个实验一条命令（在 `scout_navigation/` 目录下）：
+
 | 场景 | 命令 |
 |---|---|
-| 仿真 | `ros2 launch scout_navigation gazebo.launch.py` |
-| 真车 | `ros2 launch scout_navigation hardware.launch.py site:=<场地 yaml>` |
-| 监控页 | `ros2 launch scout_navigation dashboard.launch.py`，浏览器开 `http://<车的IP>:8000` |
+| 真车 | `./run.sh field site:=field_today.yaml`：GNSS、激光、IMU、相机、导航、CAN 桥、监控页一起起 |
+| 仿真 | `./run.sh sim`：Gazebo + 七个障碍物 + 监控页 |
+
+监控页：浏览器开 `http://<车的IP>:8000`。底下的 `field.launch.py` / `sim.launch.py` 由 `run.sh` 调用，
+单独的 `gazebo`、`hardware`、`dashboard` 三个 launch 也还能各自用。
 
 ## 四、核心代码 `scout_navigation/`
 
@@ -70,6 +74,7 @@ flowchart LR
 | `field_today.yaml` | 短测量现场模板：起点坐标、方向、线数、雷达朝后 |
 | `south_lawn.yaml` | 南草坪 30 × 30 m 测区（MGA55 测量点） |
 | `payload.yaml` | 拖车长度，页面画拖车用 |
+| `ublox_rover.yaml` | ZED-F9P 驱动：只读不改接收机配置，发 `gps/fix`、`gps/fix_velocity` |
 | `obstacles.yaml` | 仿真里的 7 个测试障碍物 |
 | `survey.rviz` | rviz 视图 |
 
@@ -77,7 +82,7 @@ flowchart LR
 
 | 目录 | 内容 |
 |---|---|
-| `launch/` | 仿真、真车、监控页三个 launch |
+| `launch/` | `field` / `sim` 两个总 launch，加 `gazebo`、`hardware`、`dashboard` 三个分 launch |
 | `web/` | 监控页（`index.html`）和本地 roslib |
 | `description/` | 车上的雷达、IMU、天线、相机、拖车模型 |
 | `worlds/` | Gazebo 场地、障碍物、地面测线标记 |

@@ -33,8 +33,10 @@ OBSTACLES = os.path.join(PACKAGE_SHARE, 'config', 'obstacles.yaml')
 def spawn_obstacles():
     """One spawn node per obstacle in the layout, so the test set lives in config not in code."""
     layout = yaml.safe_load(open(OBSTACLES))['obstacles']
+    # The bystander exists for detour_run.py, which removes it mid-run; a plain demo leaves it out
+    enabled = {False: LaunchConfiguration('obstacles'), True: LaunchConfiguration('bystander')}
     return [Node(package='ros_gz_sim', executable='create', output='screen',
-                 condition=IfCondition(LaunchConfiguration('obstacles')),
+                 condition=IfCondition(enabled[bool(item.get('bystander'))]),
                  arguments=['-file', os.path.join(PACKAGE_SHARE, 'worlds', item['model']),
                             '-name', item['name'],
                             '-x', str(item['pose'][0]), '-y', str(item['pose'][1]),
@@ -82,6 +84,9 @@ def generate_launch_description():
 
         DeclareLaunchArgument('obstacles', default_value='true',
                               description='Place the test obstacles on the survey lines'),
+
+        DeclareLaunchArgument('bystander', default_value='false',
+                              description='Place the corner pole that detour_run.py removes mid-run'),
 
         DeclareLaunchArgument('spawn_height', default_value='0.4',
                               description='Spawn height; raise it for the rough world'),

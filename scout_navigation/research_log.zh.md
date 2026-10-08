@@ -1148,3 +1148,12 @@ Tx 位置误差均值 0.20 m；Rx 的 2.0 m 不算干净的测试，因为那次
 直接发 `imu/data`，带时间戳和 `imu_link` 坐标系，姿态填单位四元数（导航节点的地面过滤当作水平），开机前 3 s 平均陀螺零偏并扣除。
 `imu_yaw_sign` 应对芯片倒装。由 `hardware.launch.py` 启动（`imu:=false` 跳过）；`field_today.yaml` 关掉 `dead_reckoning`。
 用假传感器测过（0.8°/s 零偏，然后 20°/s 转弯）：零偏扣除，转弯输出 0.349 rad/s。还没在真芯片上跑；上车第一件事是确认左转读数为正。
+
+## 2026-10-09 — 一条命令一个实验
+
+`run.sh field` / `run.sh sim` 取代原来的四五个终端。`field.launch.py` 包含 `hardware.launch.py`（导航、CAN 桥、IMU）和
+`dashboard.launch.py`，再加 ZED-F9P（`ublox_gps`，`config_on_startup: false` 不改动接收机在 u-center 里的设置，`fix`、
+`fix_velocity` 重映射到 `gps/`）和 Slamtec 官方 S2 launch，每个都能单独关、端口作参数。`sim.launch.py` 是 Gazebo 加监控页（仿真时间）。
+角上的路人杆现在只在 `bystander:=true` 时生成（给 `detour_run.py` 用），普通演示不会再停在第一条线末尾。
+本机验证：`run.sh sim` 能起 Gazebo、导航、页面；`field.launch.py` 关掉驱动后除 CAN 桥外全部启动（笔记本没有 can0）。
+GNSS 和激光两部分要等车上线才能测：sllidar 包只装在车上，F9P 是否已经通过 USB 输出 NAV-PVT 要在车上确认。

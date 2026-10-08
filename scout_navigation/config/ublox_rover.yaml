@@ -1,0 +1,11 @@
+# ZED-F9P read over USB. The receiver keeps the configuration set in u-center (RTK input,
+# message rates); it must output UBX NAV-PVT on USB, which gives gps/fix and gps/fix_velocity.
+/**:
+  ros__parameters:
+    device: /dev/ttyACM0
+    frame_id: navsat_link
+    config_on_startup: false
+    publish:
+      all: false
+      nav:
+        pvt: true
