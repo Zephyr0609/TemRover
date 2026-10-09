@@ -11,7 +11,8 @@ PACKAGE_SHARE = get_package_share_directory('scout_navigation')
 LAUNCH = os.path.join(PACKAGE_SHARE, 'launch')
 
 FORWARDED = {'site': os.path.join(PACKAGE_SHARE, 'config', 'survey.yaml'), 'obstacles': 'true',
-             'bystander': 'false', 'carts': 'false', 'gz_args': '-r -v 2'}
+             'bystander': 'false', 'carts': 'false', 'gz_args': '-r -v 2',
+             'world': 'flat_field.sdf.xacro', 'show_path': 'true'}
 
 
 def generate_launch_description():

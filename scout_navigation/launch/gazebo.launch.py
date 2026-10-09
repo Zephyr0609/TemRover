@@ -51,7 +51,8 @@ def render_world(context):
     template = os.path.join(PACKAGE_SHARE, 'worlds', LaunchConfiguration('world').perform(context))
     rendered = subprocess.run(
         ['xacro', template, f"latitude:={origin['origin_latitude']}",
-         f"longitude:={origin['origin_longitude']}"], check=True, capture_output=True, text=True)
+         f"longitude:={origin['origin_longitude']}", f'share:={PACKAGE_SHARE}'],
+        check=True, capture_output=True, text=True)
 
     world_file = tempfile.NamedTemporaryFile('w', suffix='.sdf', delete=False)
     world_file.write(rendered.stdout)
@@ -95,7 +96,7 @@ def generate_launch_description():
                               description='Tow the Tx and Rx carts behind the rover'),
 
         DeclareLaunchArgument('world', default_value='flat_field.sdf.xacro',
-                              description='World template: flat_field.sdf.xacro or rough_field.sdf.xacro'),
+                              description='World template: flat_field, rough_field or royal_park (.sdf.xacro)'),
 
         DeclareLaunchArgument('gz_args', default_value='-r -v 2',
                               description='Extra Gazebo arguments, add -s to run headless'),

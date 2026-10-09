@@ -19,6 +19,15 @@ looked up in `config/`. Field switches: `imu:=false`, `gnss:=false`, `lidar:=fal
 configuration (`config/ublox_rover.yaml`); the ZED-F9P must already output UBX NAV-PVT on USB and
 receive its RTK corrections. The lidar uses Slamtec's `sllidar_ros2` S2 launch, built on the rover.
 
+Royal Park in Gazebo: the drone survey (classified LAZ point cloud and GDA2020 orthophoto, kept
+outside the repository in `../royal_park`) is turned into a textured ground mesh, a collision mesh
+and tree trunks by `experiments/make_royal_park_world.py`, which writes `worlds/royal_park/` and
+`worlds/royal_park.sdf.xacro`. Run it with the surveyed grid:
+
+```
+./run.sh sim world:=royal_park.sdf.xacro site:=royal_park.yaml obstacles:=false show_path:=false
+```
+
 The single launch files underneath still work on their own:
 
 ```

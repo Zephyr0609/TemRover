@@ -73,6 +73,7 @@ flowchart LR
 | `survey.yaml` | 所有默认参数：速度、避障距离、激光安装、滤波噪声 |
 | `field_today.yaml` | 短测量现场模板：起点坐标、方向、线数、雷达朝后 |
 | `south_lawn.yaml` | 南草坪 30 × 30 m 测区（MGA55 测量点） |
+| `royal_park.yaml` | 皇家公园 50 × 50 m 固定测区，起点 W00，GDA2020 |
 | `payload.yaml` | 拖车几何（PVC 连杆中点铰接）、U 型弯半径 6 m、线两头多开 8 m |
 | `ublox_rover.yaml` | ZED-F9P 驱动：只读不改接收机配置，发 `gps/fix`、`gps/fix_velocity` |
 | `obstacles.yaml` | 仿真里的 7 个测试障碍物 |
@@ -85,7 +86,7 @@ flowchart LR
 | `launch/` | `field` / `sim` 两个总 launch，加 `gazebo`、`hardware`、`dashboard` 三个分 launch |
 | `web/` | 监控页（`index.html`）和本地 roslib |
 | `description/` | 车上的雷达、IMU、天线、相机、拖车模型 |
-| `worlds/` | Gazebo 场地、障碍物、地面测线标记 |
+| `worlds/` | Gazebo 场地、障碍物、地面测线标记；`royal_park/` 是由无人机点云和正射影像生成的真实地形网格 |
 | `experiments/` | 工具脚本，见下表 |
 | `results/` | 图和视频 |
 | `../scout_description/` | AgileX 官方 Scout 2.0 车体模型 |
@@ -100,6 +101,7 @@ flowchart LR
 | `make_avoidance_figures.py` | 避障原理示意图 1–4 |
 | `make_path_marker.py` / `make_terrain.py` | 生成 Gazebo 测线标记和起伏地形 |
 | `turn_design.py` | 拖车运动学：按铰接几何选 U 型弯半径和线两头的延长距离 |
+| `make_royal_park_world.py` | 无人机点云 + 正射影像 → 带贴图的地面网格、碰撞网格、树干，生成皇家公园 Gazebo 世界 |
 | `bench_scan.py` | 车架空时用的假激光，台架测试绕行 |
 | `can_loopback_test.py` | 虚拟 CAN 上测 CAN 桥 |
 | `rover_nudge.py` / `spin_test.py` | 实车直行、原地转的标定 |

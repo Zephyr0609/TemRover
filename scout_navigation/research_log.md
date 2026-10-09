@@ -789,3 +789,24 @@ train cannot follow, so each test jackknifed and the next started folded. Gazebo
 contact under drawbar load is not trustworthy here. Next: validate guidance with the kinematic
 train model (rover in Gazebo, carts computed as on the dashboard) and settle the real behaviour
 with the field test (tow straight, one R 6 m turn by hand).
+
+## 2026-10-09 — Royal Park as a Gazebo world, from the drone survey
+
+Same three steps as the CERT paper (aerial survey → 3D world → robot in it), starting one stage
+later: the surveyors' dense cloud (22.5 M points, RGB, classified: 18.3 M ground, 4.2 M
+unclassified = tree canopies, median 7 m above ground) and a 1.4 cm GDA2020 orthophoto.
+`experiments/make_royal_park_world.py`:
+- Cloud GDA94 → GDA2020 (0.49 m E, 1.47 m N), cropped to the grid ±30 m along / ±15 m across
+  (111 × 81 m, room for headlands and U-turns).
+- Ground: median of ground-class points per cell (0.2 % of cells filled from neighbours), 0.25 m
+  visual mesh textured with the orthophoto (4096 px, 2.7 cm/px), 0.5 m collision mesh, per-vertex
+  normals (DART drops a mesh without them).
+- Every vertex goes MGA2020 → lat/lon → the navigator's tangent plane at W00, so the terrain sits
+  where the simulated GNSS puts the rover; heights relative to the ground at W00 (35.63 m cloud,
+  36.00 m peg).
+- Trees: canopy-height maxima → 12 trunks (collision) with drawn crowns; aerial data sees no trunks,
+  so their position is the crown top. None inside the grid; one 2.4 m north of the last line.
+Site `config/royal_park.yaml`: W00 origin, true bearing −0.03854 rad (0.95° south of grid east plus
+1.25° grid convergence), 50 × 50 m, 5 m spacing, anchored. First run, rover alone, spot turns:
+three lines and turns with no detour, no hold and no false obstacle from the slope.
+`results/royal_park_overhead.jpg`, `results/royal_park_front.jpg`.

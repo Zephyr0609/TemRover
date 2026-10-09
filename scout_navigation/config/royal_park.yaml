@@ -1,0 +1,12 @@
+/**:
+  ros__parameters:
+    # Royal Park permanent EM Loupe grid, GDA2020 / MGA55 (royal_park/b_Grid_Coordinates); line 1 starts at W00
+    origin_latitude: -37.78805335
+    origin_longitude: 144.94732789
+    # W00 -> E00: 0.95 deg south of grid east plus 1.25 deg grid convergence, as a true bearing
+    grid_bearing: -0.03854
+    grid_width: 50.0
+    grid_length: 50.0
+    line_spacing: 5.0
+    anchor_to_origin: true
+    cruise_speed: 0.9
