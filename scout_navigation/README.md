@@ -26,6 +26,7 @@ and tree trunks by `experiments/make_royal_park_world.py`, which writes `worlds/
 
 ```
 ./run.sh sim world:=royal_park.sdf.xacro site:=royal_park.yaml obstacles:=false show_path:=false
+# add trees:=true to place the trees from the point cloud around the grid
 ```
 
 The single launch files underneath still work on their own:
