@@ -51,7 +51,8 @@ def render_world(context):
     template = os.path.join(PACKAGE_SHARE, 'worlds', LaunchConfiguration('world').perform(context))
     rendered = subprocess.run(
         ['xacro', template, f"latitude:={origin['origin_latitude']}",
-         f"longitude:={origin['origin_longitude']}", f'share:={PACKAGE_SHARE}'],
+         f"longitude:={origin['origin_longitude']}", f'share:={PACKAGE_SHARE}',
+         f"trees:={LaunchConfiguration('trees').perform(context)}"],
         check=True, capture_output=True, text=True)
 
     world_file = tempfile.NamedTemporaryFile('w', suffix='.sdf', delete=False)
@@ -88,6 +89,9 @@ def generate_launch_description():
 
         DeclareLaunchArgument('bystander', default_value='false',
                               description='Place the corner pole that detour_run.py removes mid-run'),
+
+        DeclareLaunchArgument('trees', default_value='false',
+                              description='Royal Park only: trees from the point cloud around the grid'),
 
         DeclareLaunchArgument('spawn_height', default_value='0.4',
                               description='Spawn height; raise it for the rough world'),

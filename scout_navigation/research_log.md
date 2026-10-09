@@ -819,3 +819,5 @@ rim so there are no side walls. Objects under 3 m reach the ground (shrubs). A t
 crown size, 0.1–0.4 m) stands under each crown top, the only part the rover can collide with at
 crown height; the crowns are also collision meshes, so low branches and shrubs are real for the
 lidar and the bumper. 9 trees around the grid; scene sky added. `results/royal_park_trees.jpg`.
+Trees are now behind a `trees` launch switch, off by default: none stands in the grid and the
+crowns' undersides and trunk positions are inferred, not measured. `trees:=true` brings them back.

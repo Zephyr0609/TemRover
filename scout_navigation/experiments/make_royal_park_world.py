@@ -224,6 +224,7 @@ def world(trunks, share):
           <geometry><mesh><uri>file://{share}/worlds/royal_park/terrain.obj</uri></mesh></geometry>
         </visual>
       </link>
+      <xacro:if value="$(arg trees)">
       <link name="vegetation">
         <collision name="collision">
           <geometry><mesh><uri>file://{share}/worlds/royal_park/objects.obj</uri></mesh></geometry>
@@ -232,6 +233,7 @@ def world(trunks, share):
           <geometry><mesh><uri>file://{share}/worlds/royal_park/objects.obj</uri></mesh></geometry>
         </visual>
       </link>{trunk_links}
+      </xacro:if>
     </model>
 '''
 
@@ -297,7 +299,8 @@ def main():
     ground_block = re.search(r'    <model name="ground">.*?</model>\n', template, re.S).group(0)
     text = template.replace(ground_block, world(trunks, '$(arg share)'))
     text = text.replace('<xacro:arg name="longitude" default="144.9614" />',
-                        '<xacro:arg name="longitude" default="144.9614" />\n  <xacro:arg name="share" default="" />')
+                        '<xacro:arg name="longitude" default="144.9614" />\n  <xacro:arg name="share" default="" />\n'
+                        '  <xacro:arg name="trees" default="false" />')
     text = text.replace('<pose>25 4 45 0 1.5708 1.5708</pose>', '<pose>25 25 75 0 1.5708 1.5708</pose>')
     text = text.replace('<camera_pose>-12 -10 8 0 0.45 0.6</camera_pose>', '<camera_pose>25 -32 24 0 0.55 1.5708</camera_pose>')
     text = text.replace('    <spherical_coordinates>', '    <scene>\n      <ambient>0.6 0.6 0.6 1</ambient>\n      <sky></sky>\n'

@@ -12,7 +12,7 @@ LAUNCH = os.path.join(PACKAGE_SHARE, 'launch')
 
 FORWARDED = {'site': os.path.join(PACKAGE_SHARE, 'config', 'survey.yaml'), 'obstacles': 'true',
              'bystander': 'false', 'carts': 'false', 'gz_args': '-r -v 2',
-             'world': 'flat_field.sdf.xacro', 'show_path': 'true'}
+             'world': 'flat_field.sdf.xacro', 'show_path': 'true', 'trees': 'false'}
 
 
 def generate_launch_description():

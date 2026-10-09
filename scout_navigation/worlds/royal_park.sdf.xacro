@@ -4,6 +4,7 @@
   <xacro:arg name="latitude" default="-37.7963" />
   <xacro:arg name="longitude" default="144.9614" />
   <xacro:arg name="share" default="" />
+  <xacro:arg name="trees" default="false" />
   <world name="survey_field">
 
     <gui fullscreen="0">
@@ -161,6 +162,7 @@
           <geometry><mesh><uri>file://$(arg share)/worlds/royal_park/terrain.obj</uri></mesh></geometry>
         </visual>
       </link>
+      <xacro:if value="$(arg trees)">
       <link name="vegetation">
         <collision name="collision">
           <geometry><mesh><uri>file://$(arg share)/worlds/royal_park/objects.obj</uri></mesh></geometry>
@@ -223,6 +225,7 @@
         <visual name="visual"><geometry><cylinder><radius>0.10</radius><length>8.15</length></cylinder></geometry>
           <material><ambient>0.30 0.22 0.15 1</ambient><diffuse>0.36 0.27 0.18 1</diffuse></material></visual>
       </link>
+      </xacro:if>
     </model>
 
     <!-- Overhead camera framing the first three survey lines, for recording runs to video -->
