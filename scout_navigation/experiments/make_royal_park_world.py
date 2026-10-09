@@ -32,9 +32,11 @@ OUT = pathlib.Path(__file__).resolve().parents[1] / 'worlds' / 'royal_park'
 MARGIN_ALONG, MARGIN_ACROSS = 30.0, 15.0
 VISUAL_CELL, COLLISION_CELL = 0.25, 0.5
 TEXTURE_WIDTH = 4096
-CANOPY_HEIGHT = 2.0
+OBJECT_CELL = 0.25
+OBJECT_HEIGHT = 0.3
+TREE_HEIGHT = 3.0
 CROWN_WINDOW = 5.0
-TRUNK_RADIUS, TRUNK_HEIGHT = 0.2, 2.5
+SMALLEST_OBJECT = 4
 TEMPLATE = OUT.parent / 'flat_field.sdf.xacro'
 WORLD = OUT.parent / 'royal_park.sdf.xacro'
 
@@ -107,38 +109,109 @@ def write_obj(path, local_e, local_n, height, uv, material):
             obj.write('f ' + ' '.join(f'{i}/{i}/{i}' if uv is not None else f'{i}//{i}' for i in face) + '\n')
 
 
-def trees(east, north, height_above_ground, bounds, ground, plane):
-    """Crown tops are local maxima of the canopy height model; one trunk under each, standing on the ground."""
-    canopy, empty = surface(east, north, height_above_ground, bounds, 0.5, np.max)
-    canopy[empty | (canopy < CANOPY_HEIGHT)] = 0.0
-    peaks = (canopy == ndimage.maximum_filter(canopy, size=int(CROWN_WINDOW / 0.5))) & (canopy > CANOPY_HEIGHT)
-    labels, _ = ndimage.label(canopy > CANOPY_HEIGHT)
-    rows, columns = np.nonzero(peaks)
+def objects(east, north, height_above_ground, bounds, ground, plane):
+    """Shrubs and tree crowns as closed shells: the measured top, an underside at the object's lowest point.
+
+    Aerial data sees canopies from above only, so a crown is rounded underneath: as deep as its lowest
+    rim point at the centre, thinning to the rim; a trunk stands under each crown top, reaching into
+    the crown. Low objects reach the ground.
+    Returns the shell mesh arrays and the trunks, all in navigator coordinates relative to W00.
+    """
+    tops, empty = surface(east, north, height_above_ground, bounds, OBJECT_CELL, np.max)
+    lows, _ = surface(east, north, height_above_ground, bounds, OBJECT_CELL, np.min)
+    occupied = ndimage.binary_closing(~empty, iterations=2) & ~ndimage.binary_erosion(empty, iterations=4)
+    labels, count = ndimage.label(occupied, structure=np.ones((3, 3)))
+    sizes = ndimage.sum(occupied, labels, range(1, count + 1))
+    keep = np.isin(labels, np.flatnonzero(sizes >= SMALLEST_OBJECT) + 1)
+    labels[~keep] = 0
+    tops = ndimage.gaussian_filter(np.where(keep, tops, 0.0), 1.0) / np.maximum(ndimage.gaussian_filter(keep * 1.0, 1.0), 1e-6)
+    base = np.zeros_like(tops)
+    trunks = []
     (west, south), _ = bounds
-    found = []
-    for row, column in zip(rows, columns):
-        crown_cells = np.count_nonzero(labels == labels[row, column])
-        e, n = np.array([[west + 0.5 * (column + 0.5)]]), np.array([[south + 0.5 * (row + 0.5)]])
-        local_e, local_n = to_local(e, n, plane)
-        found.append((float(local_e[0, 0]), float(local_n[0, 0]), float(ground[row, column]), float(canopy[row, column]),
-                      min(np.sqrt(crown_cells * 0.25 / np.pi), CROWN_WINDOW)))
-    return found
+    for label in np.unique(labels[labels > 0]):
+        cells = labels == label
+        if tops[cells].max() < TREE_HEIGHT:
+            continue
+        # Rounded crown: full depth down to the lowest rim point at the centre, none at the edge
+        lowest = np.percentile(lows[cells], 5)
+        inward = ndimage.distance_transform_edt(cells)
+        # The outermost ring has no thickness, so a crown needs no side walls
+        depth = np.sqrt((inward - 1.0) / max(inward.max() - 1.0, 1.0))
+        base[cells] = tops[cells] - (tops[cells] - lowest) * depth[cells]
+        peaks = cells & (tops == ndimage.maximum_filter(np.where(cells, tops, 0.0), size=int(CROWN_WINDOW / OBJECT_CELL)))
+        for row, column in zip(*np.nonzero(peaks)):
+            e, n = np.array([[west + OBJECT_CELL * (column + 0.5)]]), np.array([[south + OBJECT_CELL * (row + 0.5)]])
+            local_e, local_n = to_local(e, n, plane)
+            crown = np.sqrt(cells.sum() * OBJECT_CELL ** 2 / np.pi / max(len(np.nonzero(peaks)[0]), 1))
+            trunks.append((float(local_e[0, 0]), float(local_n[0, 0]), float(ground[row, column]),
+                           float(lowest + 0.5 * (tops[row, column] - lowest)), float(np.clip(crown / 12.0, 0.1, 0.4))))
+    return keep, tops, base, trunks
 
 
-def world(trees_found, share):
-    tree_links = ''.join(f'''
-      <link name="tree_{index}">
-        <pose>{e:.2f} {n:.2f} {z:.2f} 0 0 0</pose>
-        <collision name="trunk"><pose>0 0 {TRUNK_HEIGHT / 2 - 1.0:.2f} 0 0 0</pose>
-          <geometry><cylinder><radius>{TRUNK_RADIUS}</radius><length>{TRUNK_HEIGHT + 2.0}</length></cylinder></geometry>
-        </collision>
-        <visual name="trunk"><pose>0 0 {TRUNK_HEIGHT / 2 - 1.0:.2f} 0 0 0</pose>
-          <geometry><cylinder><radius>{TRUNK_RADIUS}</radius><length>{TRUNK_HEIGHT + 2.0}</length></cylinder></geometry>
-          <material><ambient>0.35 0.25 0.15 1</ambient><diffuse>0.35 0.25 0.15 1</diffuse></material></visual>
-        <visual name="crown"><pose>0 0 {top - crown:.2f} 0 0 0</pose>
-          <geometry><sphere><radius>{crown:.2f}</radius></sphere></geometry>
-          <material><ambient>0.2 0.35 0.15 0.6</ambient><diffuse>0.2 0.35 0.15 0.6</diffuse></material></visual>
-      </link>''' for index, (e, n, z, top, crown) in enumerate(trees_found))
+def write_shells(path, keep, tops, base, ground, bounds, plane):
+    """Top and underside faces per occupied cell, walls where an occupied cell meets an empty one."""
+    rows, columns = keep.shape
+    (west, south), (east_edge, north_edge) = bounds
+    node_e = west + OBJECT_CELL * np.arange(columns + 1)
+    node_n = south + OBJECT_CELL * np.arange(rows + 1)
+    grid_e, grid_n = np.meshgrid(node_e, node_n)
+    local_e, local_n = to_local(grid_e, grid_n, plane)
+
+    def corner(values):
+        """Sum over the up to four occupied cells around each grid corner."""
+        padded = np.pad(np.where(keep, values, 0.0), 1)
+        return sum(padded[dr:dr + rows + 1, dc:dc + columns + 1] for dr in (0, 1) for dc in (0, 1))
+
+    # Corner heights average the occupied cells around each corner
+    count = np.maximum(corner(np.ones_like(tops)), 1)
+    ground_corner = corner(ground) / count
+    top_z, base_z = ground_corner + corner(tops) / count, ground_corner + corner(base) / count
+    u = (grid_e - west) / (east_edge - west)
+    v = (grid_n - south) / (north_edge - south)
+    vertices, faces = [], []
+
+    def vertex(row, column, height):
+        vertices.append((local_e[row, column], local_n[row, column], height[row, column], u[row, column], v[row, column]))
+        return len(vertices)
+
+    for row, column in zip(*np.nonzero(keep)):
+        corners = [(row, column), (row, column + 1), (row + 1, column + 1), (row + 1, column)]
+        top = [vertex(r, c, top_z) for r, c in corners]
+        bottom = [vertex(r, c, base_z) for r, c in corners]
+        faces += [(top[0], top[1], top[2]), (top[0], top[2], top[3]),
+                  (bottom[0], bottom[2], bottom[1]), (bottom[0], bottom[3], bottom[2])]
+        for side, (dr, dc) in enumerate(((-1, 0), (0, 1), (1, 0), (0, -1))):
+            r, c = row + dr, column + dc
+            if 0 <= r < rows and 0 <= c < columns and keep[r, c]:
+                continue
+            a, b = {0: (0, 1), 1: (1, 2), 2: (2, 3), 3: (3, 0)}[side]
+            faces += [(bottom[a], bottom[b], top[b]), (bottom[a], top[b], top[a])]
+    # Physics needs a normal per vertex: the area-weighted sum of the faces that share it
+    points = np.array([vertex[:3] for vertex in vertices])
+    corners_of = np.array(faces) - 1
+    first = points[corners_of[:, 0]]
+    face_normals = np.cross(points[corners_of[:, 1]] - first, points[corners_of[:, 2]] - first)
+    normals = np.zeros_like(points)
+    for k in range(3):
+        np.add.at(normals, corners_of[:, k], face_normals)
+    normals /= np.maximum(np.linalg.norm(normals, axis=1, keepdims=True), 1e-9)
+    with open(path, 'w') as obj:
+        obj.write(f'mtllib {path.stem}.mtl\nusemtl orthophoto\n')
+        obj.writelines(f'v {x:.3f} {y:.3f} {z:.3f}\n' for x, y, z, _, _ in vertices)
+        obj.writelines(f'vn {x:.4f} {y:.4f} {z:.4f}\n' for x, y, z in normals)
+        obj.writelines(f'vt {a:.5f} {b:.5f}\n' for _, _, _, a, b in vertices)
+        obj.writelines(f'f {a}/{a}/{a} {b}/{b}/{b} {c}/{c}/{c}\n' for a, b, c in faces)
+    return len(faces)
+
+
+def world(trunks, share):
+    trunk_links = ''.join(f'''
+      <link name="trunk_{index}">
+        <pose>{e:.2f} {n:.2f} {z + top / 2:.2f} 0 0 0</pose>
+        <collision name="collision"><geometry><cylinder><radius>{radius:.2f}</radius><length>{top + 0.5:.2f}</length></cylinder></geometry></collision>
+        <visual name="visual"><geometry><cylinder><radius>{radius:.2f}</radius><length>{top + 0.5:.2f}</length></cylinder></geometry>
+          <material><ambient>0.30 0.22 0.15 1</ambient><diffuse>0.36 0.27 0.18 1</diffuse></material></visual>
+      </link>''' for index, (e, n, z, top, radius) in enumerate(trunks))
     return f'''
     <model name="royal_park_terrain">
       <static>true</static>
@@ -150,7 +223,15 @@ def world(trees_found, share):
         <visual name="visual">
           <geometry><mesh><uri>file://{share}/worlds/royal_park/terrain.obj</uri></mesh></geometry>
         </visual>
-      </link>{tree_links}
+      </link>
+      <link name="vegetation">
+        <collision name="collision">
+          <geometry><mesh><uri>file://{share}/worlds/royal_park/objects.obj</uri></mesh></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><mesh><uri>file://{share}/worlds/royal_park/objects.obj</uri></mesh></geometry>
+        </visual>
+      </link>{trunk_links}
     </model>
 '''
 
@@ -200,23 +281,30 @@ def main():
     Image.fromarray(np.moveaxis(image, 0, -1)).save(OUT / 'terrain.jpg', quality=90)
     (OUT / 'terrain.mtl').write_text('newmtl orthophoto\nKa 1 1 1\nKd 1 1 1\nKs 0 0 0\nmap_Kd terrain.jpg\n')
 
-    dtm, *_ = meshes['collision']
-    cell_e = np.clip(((east - bounds[0][0]) / COLLISION_CELL).astype(int), 0, dtm.shape[1] - 1)
-    cell_n = np.clip(((north - bounds[0][1]) / COLLISION_CELL).astype(int), 0, dtm.shape[0] - 1)
+    # Objects on the visual grid: heights above the ground model of the same resolution
+    dtm, *_ = meshes['terrain']
+    cell_e = np.clip(((east - bounds[0][0]) / OBJECT_CELL).astype(int), 0, dtm.shape[1] - 1)
+    cell_n = np.clip(((north - bounds[0][1]) / OBJECT_CELL).astype(int), 0, dtm.shape[0] - 1)
     above = height - dtm[cell_n, cell_e]
-    canopy = classes == UNCLASSIFIED
-    found = trees(east[canopy], north[canopy], above[canopy], bounds, dtm - origin_height, plane)
+    standing = (classes == UNCLASSIFIED) & (above > OBJECT_HEIGHT)
+    keep, tops, base, trunks = objects(east[standing], north[standing], above[standing], bounds, dtm - origin_height, plane)
+    faces = write_shells(OUT / 'objects.obj', keep, tops, base, dtm - origin_height, bounds, plane)
+    (OUT / 'objects.mtl').write_text((OUT / 'terrain.mtl').read_text())
+    print(f'{keep.sum()} object cells of {OBJECT_CELL} m, {faces} faces, {len(trunks)} trunks')
 
     # The flat field's world with its ground plane swapped for the survey, and the camera over the grid
     template = TEMPLATE.read_text()
     ground_block = re.search(r'    <model name="ground">.*?</model>\n', template, re.S).group(0)
-    text = template.replace(ground_block, world(found, '$(arg share)'))
+    text = template.replace(ground_block, world(trunks, '$(arg share)'))
     text = text.replace('<xacro:arg name="longitude" default="144.9614" />',
                         '<xacro:arg name="longitude" default="144.9614" />\n  <xacro:arg name="share" default="" />')
     text = text.replace('<pose>25 4 45 0 1.5708 1.5708</pose>', '<pose>25 25 75 0 1.5708 1.5708</pose>')
+    text = text.replace('<camera_pose>-12 -10 8 0 0.45 0.6</camera_pose>', '<camera_pose>25 -32 24 0 0.55 1.5708</camera_pose>')
+    text = text.replace('    <spherical_coordinates>', '    <scene>\n      <ambient>0.6 0.6 0.6 1</ambient>\n      <sky></sky>\n'
+                        '    </scene>\n\n    <spherical_coordinates>', 1)
     WORLD.write_text('<?xml version="1.0"?>\n<!-- Generated by experiments/make_royal_park_world.py from the drone survey -->\n'
                      + text.split('\n', 1)[1])
-    print(f'{len(found)} trees; wrote {OUT} and {WORLD.name}')
+    print(f'wrote {OUT} and {WORLD.name}')
 
 
 if __name__ == '__main__':

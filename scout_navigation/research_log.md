@@ -810,3 +810,12 @@ Site `config/royal_park.yaml`: W00 origin, true bearing −0.03854 rad (0.95° s
 1.25° grid convergence), 50 × 50 m, 5 m spacing, anchored. First run, rover alone, spot turns:
 three lines and turns with no detour, no hold and no false obstacle from the slope.
 `results/royal_park_overhead.jpg`, `results/royal_park_front.jpg`.
+
+**Trees from the point cloud.** The placeholder trunks and grey spheres are replaced by the
+measured vegetation: non-ground points more than 0.3 m above the ground, gridded at 0.25 m, closed
+into objects, each a shell whose top is the measured canopy surface (orthophoto texture) and whose
+underside is rounded — as deep as the crown's lowest rim point at the centre, zero thickness at the
+rim so there are no side walls. Objects under 3 m reach the ground (shrubs). A trunk (radius from
+crown size, 0.1–0.4 m) stands under each crown top, the only part the rover can collide with at
+crown height; the crowns are also collision meshes, so low branches and shrubs are real for the
+lidar and the bumper. 9 trees around the grid; scene sky added. `results/royal_park_trees.jpg`.
