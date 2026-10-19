@@ -116,6 +116,16 @@ class ScoutCanBridge(Node):
             raw = self.socket.recv(FRAME_SIZE)
         except BlockingIOError:
             return None
+        except OSError as error:
+            # A down or bounced interface must not kill the bridge: forget the mode so no motion
+            # frame is sent, and let the next poll pick the link up again once it returns
+            interface = self.get_parameter('can_interface').value
+            self.get_logger().error(
+                f'{interface}: {error.strerror}. Bring it up with '
+                f'sudo ip link set {interface} up type can bitrate 500000',
+                throttle_duration_sec=5.0)
+            self.control_mode = None
+            return None
         identifier, length, payload = struct.unpack(FRAME_FORMAT, raw)
         return identifier & socket.CAN_EFF_MASK, payload[:length]
 

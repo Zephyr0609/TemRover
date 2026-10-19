@@ -29,7 +29,7 @@ PARAMETERS = [
     ('obstacle_standoff', 0.5), ('obstacle_hysteresis', 0.1), ('obstacle_clearance', 0.15),
     ('hold_hysteresis', 0.5),
     ('rover_half_width', 0.35), ('lidar_offset', 0.34),
-    ('lidar_height', 0.395), ('lidar_yaw', 0.0), ('detection_field_of_view', 1.047),
+    ('lidar_height', 0.395), ('lidar_yaw', 0.0), ('detection_field_of_view', 1.047), ('obstacle_range', 10.0),
     ('minimum_obstacle_height', 0.15),
     ('range_step_threshold', 0.3), ('maximum_object_angle', 1.57),
     ('detour_lookahead', 10.0), ('detour_lateral_acceleration', 1.0),
@@ -259,7 +259,7 @@ class SurveyNavigator(Node):
                              self.settings['minimum_obstacle_height'],
                              self.settings['range_step_threshold'],
                              self.settings['maximum_object_angle'], self.settings['lidar_yaw'],
-                             self.settings['detection_field_of_view'])
+                             self.settings['detection_field_of_view'], self.settings['obstacle_range'])
         self.obstacle_points = to_world(points, self.estimator.position, self.estimator.heading,
                                         self.settings['lidar_offset'])
         header = Header(stamp=message.header.stamp, frame_id='map')

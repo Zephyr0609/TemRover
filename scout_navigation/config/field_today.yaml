@@ -16,3 +16,5 @@
     dead_reckoning: false
     # This RPLIDAR S2L reads its zero bearing aft, so every return sat 180 deg out until measured
     lidar_yaw: 3.141593
+    # Without RTK (GGA quality 1 rather than 4) use gnss_noise 0.8 and gnss_offset 0.0, as on 21 Sep
+    # (config/field_2026_09_21.yaml)

@@ -1,0 +1,24 @@
+/**:
+  ros__parameters:
+    # The line surveyed on 21 Sep. Its start corner is MGA2020 zone 55 E 320451.662 N 5814589.031,
+    # -37.79844180, 144.96064559 (experiments/mga_to_geographic.py). With no corrections the
+    # receiver read 2.6 m northeast of it, so the line is translated onto what the receiver said;
+    # bearing and length are untouched, so the far end moves with it.
+    origin_latitude: -37.79843457
+    origin_longitude: 144.96067460
+    # To the surveyed end point MGA E 320409.619 N 5814594.319: 42.374 m on a bearing of +171.581 deg
+    grid_bearing: 2.994651
+    grid_length: 42.374
+    # One line: the two surveyed points are its ends
+    grid_width: 0.0
+    line_spacing: 5.0
+    anchor_to_origin: true
+    cruise_speed: 0.9
+    # No IMU on the rover that day: yaw rate from the chassis feedback, GNSS still required
+    dead_reckoning: true
+    lidar_yaw: 3.141593
+    # No corrections reached the receiver (GGA quality 1, standalone): survey.yaml's 0.02 is an
+    # RTK figure and would have the filter chase metre-scale noise as though it were motion
+    gnss_noise: 0.8
+    # The lever arm turned that wander into yaw at about 1.9 rad per metre; zero until RTK is fixed
+    gnss_offset: 0.0

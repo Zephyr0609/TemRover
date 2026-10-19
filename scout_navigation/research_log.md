@@ -872,3 +872,14 @@ on a 25 cm base, 0.952 m each side of the pin (was 1.0 m). Tx–Rx: a 58 cm-side
 each side of the pin, 1.636 m (was 1.65 m). Gazebo rods 1.904 and 3.272 m; `payload.yaml` offsets
 1.422 / 1.859 m, cart lengths 1.972 / 2.386 m; dashboard model to match. Under 5 cm everywhere, so
 the 2.5 m U barely changes in the kinematic model: peaks 71° rover–Tx and 91° Tx–Rx (from 72°/92°).
+
+**Back from the rover: the 21 Sep field changes.** Edits made on the LattePanda that day and never
+committed, now in main: the CAN bridge survives a down or bounced `can0` (logs how to bring it up,
+sends no motion frame until it is back) instead of dying; obstacle returns beyond 10 m are dropped
+(`obstacle_range`, the detour lookahead; on the rover they were mostly far-field noise, and in the
+Royal Park world they were terrain 20 m out); `config/field_2026_09_21.yaml` keeps that day's line.
+What the day showed: no RTK corrections reached the receiver (GGA quality 1), so the line was
+shifted 2.6 m onto the standalone fix, `gnss_noise` raised to 0.8 m and the antenna lever arm
+zeroed, because the lever arm turned a metre of wander into tens of degrees of yaw. Left on the
+rover's backup branch: the alignment-corridor commit, `skip_alignment`/`initial_turn` (alignment
+is gone in main) and the reverse and out-and-back site files that depend on them.

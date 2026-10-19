@@ -36,6 +36,8 @@
     lidar_yaw: 0.0
     # Obstacles are looked for in a 60 deg cone straight ahead (radians, full width)
     detection_field_of_view: 1.047
+    # Returns beyond the detour lookahead are never planned on; on the rover they were mostly far-field noise
+    obstacle_range: 10.0
     # A wall fills up to a quarter turn of the scan up close; a slope fills half or more
     maximum_object_angle: 1.57
     # Scout 2.0 body 0.925 x 0.70 m
