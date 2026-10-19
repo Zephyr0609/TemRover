@@ -2,6 +2,7 @@ import os
 import subprocess
 import tempfile
 
+import numpy as np
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -11,6 +12,8 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
+from scout_navigation.survey_grid import survey_lines
+from scout_navigation.survey_marker import survey_marker_sdf
 
 BRIDGED_TOPICS = [
     '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
@@ -64,11 +67,31 @@ def render_world(context):
         launch_arguments={'gz_args': [world_file.name, ' ', LaunchConfiguration('gz_args')]}.items())]
 
 
+def spawn_survey_lines(context):
+    """Marks the survey lines and their real ends in the scene, laid out as the navigator lays them."""
+    files = [SURVEY] + ([PAYLOAD] if LaunchConfiguration('carts').perform(context) == 'true' else [])
+    settings = {}
+    for path in files + [LaunchConfiguration('site').perform(context)]:
+        settings.update(yaml.safe_load(open(path))['/**']['ros__parameters'])
+    bearing = settings['grid_bearing']
+    # The rover spawns at the GPS origin, so an unanchored grid starts one headland ahead of it
+    origin = (np.zeros(2) if settings.get('anchor_to_origin', False)
+              else settings['headland'] * np.array([np.cos(bearing), np.sin(bearing)]))
+    lines = survey_lines(settings['grid_width'], settings['grid_length'], settings['line_spacing'],
+                         bearing, origin)
+
+    marker_file = tempfile.NamedTemporaryFile('w', suffix='.sdf', delete=False)
+    marker_file.write(survey_marker_sdf(lines))
+    marker_file.close()
+    return [Node(package='ros_gz_sim', executable='create', output='screen',
+                 arguments=['-file', marker_file.name, '-name', 'survey_lines',
+                            '-x', '0', '-y', '0', '-z', '0'])]
+
+
 def generate_launch_description():
     description = os.path.join(get_package_share_directory('scout_description'), 'urdf',
                                'scout_v2.xacro')
     extras = os.path.join(PACKAGE_SHARE, 'description', 'temrover_extras.xacro')
-    survey_path = os.path.join(PACKAGE_SHARE, 'worlds', 'survey_path.sdf')
 
     robot_description = ParameterValue(
         Command(['xacro ', description, ' urdf_extras:=', extras,
@@ -82,7 +105,7 @@ def generate_launch_description():
                               description='Site parameters layered over survey.yaml'),
 
         DeclareLaunchArgument('show_path', default_value='true',
-                              description='Draw the planned survey path into the scene'),
+                              description='Mark the survey lines and their ends in the scene'),
 
         DeclareLaunchArgument('obstacles', default_value='true',
                               description='Place the test obstacles on the survey lines'),
@@ -115,10 +138,7 @@ def generate_launch_description():
              arguments=['-topic', 'robot_description', '-name', 'temrover',
                         '-x', '0', '-y', '0', '-z', LaunchConfiguration('spawn_height')]),
 
-        Node(package='ros_gz_sim', executable='create', output='screen',
-             condition=IfCondition(LaunchConfiguration('show_path')),
-             arguments=['-file', survey_path, '-name', 'survey_path',
-                        '-x', '0', '-y', '0', '-z', '0']),
+        OpaqueFunction(function=spawn_survey_lines, condition=IfCondition(LaunchConfiguration('show_path'))),
 
         *spawn_obstacles(),
 

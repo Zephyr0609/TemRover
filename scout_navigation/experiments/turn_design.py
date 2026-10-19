@@ -2,7 +2,8 @@
 
 The rover follows the planned turn exactly; each cart yaws about its off-axle pivot so its axle
 follows the pivot's motion. Reports, per radius, the largest hitch angles and how far past the
-line end the rover must drive so the Rx cart is back on the next line within tolerance.
+line end the rover must drive so the Tx cart reaches the line end before the turn and is back on
+the next line within tolerance; the Rx may still be turning at either end.
 """
 import sys
 
@@ -54,22 +55,22 @@ def tow(path):
 def assess(radius):
     poses = tow(rover_path(radius))
     hitch = [np.abs(np.angle(np.exp(1j * (a[:, 2] - b[:, 2])))).max() for a, b in zip(poses[:-1], poses[1:])]
-    rx = poses[-1]
-    returning = np.flatnonzero(np.cos(rx[:, 2]) < 0.0)
-    returning = returning[returning > np.argmax(rx[:, 1] > SPACING / 2.0)]
-    error = (np.abs(rx[returning, 1] - SPACING) > LATERAL_TOLERANCE) | (
-        np.abs(np.angle(np.exp(1j * (rx[returning, 2] - np.pi)))) > HEADING_TOLERANCE)
-    settled_x = rx[returning[np.flatnonzero(error)[-1] + 1], 0]
-    train = sum(OFFSETS) + sum(LENGTHS)
-    # The run past the line end must cover both: Rx clearing the line before the turn, Rx settled after it
-    headland = max(train, -settled_x)
+    tx = poses[1]
+    returning = np.flatnonzero(np.cos(tx[:, 2]) < 0.0)
+    returning = returning[returning > np.argmax(tx[:, 1] > SPACING / 2.0)]
+    error = (np.abs(tx[returning, 1] - SPACING) > LATERAL_TOLERANCE) | (
+        np.abs(np.angle(np.exp(1j * (tx[returning, 2] - np.pi)))) > HEADING_TOLERANCE)
+    settled_x = tx[returning[np.flatnonzero(error)[-1] + 1], 0]
+    rover_to_tx = OFFSETS[0] + LENGTHS[0]
+    # The run past the line end must cover both: Tx reaching the line end before the turn, Tx settled after it
+    headland = max(rover_to_tx, -settled_x)
     return np.degrees(hitch), headland, -settled_x, poses
 
 
 def main():
     print(f'train: pivots {OFFSETS} m behind, carts {LENGTHS} m to axle, '
-          f'rover to Rx axle {sum(OFFSETS) + sum(LENGTHS):.2f} m')
-    print(' radius  rover-Tx  Tx-Rx   Rx settled   headland run')
+          f'rover to Tx axle {OFFSETS[0] + LENGTHS[0]:.2f} m')
+    print(' radius  rover-Tx  Tx-Rx   Tx settled   headland run')
     results = {}
     for radius in RADII:
         hitch, headland, settled, poses = assess(radius)

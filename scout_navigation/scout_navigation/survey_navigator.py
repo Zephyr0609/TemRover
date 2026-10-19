@@ -15,7 +15,7 @@ from .detour import lateral_offset, nearest_group, plan_detour
 from .geodesy import LocalTangentPlane, wrap_to_pi
 from .obstacle_monitor import line_frame, scan_points, to_world
 from .pose_estimator import PoseEstimator
-from .survey_grid import generate_survey_mission
+from .survey_grid import generate_survey_mission, survey_lines
 
 PARAMETERS = [
     ('origin_latitude', -37.7963), ('origin_longitude', 144.9614), ('grid_bearing', 0.0),
@@ -37,7 +37,7 @@ PARAMETERS = [
     ('position_process_noise', 0.01), ('yaw_process_noise', 0.01),
     ('gnss_noise', 0.02), ('course_noise', 0.2), ('minimum_course_speed', 0.3),
     ('gnss_offset', -0.30), ('dead_reckoning', False), ('anchor_to_origin', False),
-    ('towed_length', 0.0), ('start_mode', 'autonomous'),
+    ('towed_length', 0.0), ('start_mode', 'autonomous'), ('wait_at_line_start', False),
     ('turn_radius', 0.0), ('headland', 0.0), ('turn_segment_length', 0.5),
     ('route_spacing', 0.25), ('route_period', 2.0),
 ]
@@ -51,6 +51,19 @@ def roll_pitch(orientation):
     roll = np.arctan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x * x + y * y))
     pitch = np.arcsin(np.clip(2.0 * (w * y - z * x), -1.0, 1.0))
     return np.array([roll, pitch])
+
+
+def path_message(points):
+    """A map-frame Path through the given points."""
+    message = Path()
+    message.header.frame_id = 'map'
+    for point in points:
+        pose = PoseStamped()
+        pose.header.frame_id = 'map'
+        pose.pose.position.x, pose.pose.position.y = float(point[0]), float(point[1])
+        pose.pose.orientation.w = 1.0
+        message.poses.append(pose)
+    return message
 
 
 class SurveyNavigator(Node):
@@ -72,6 +85,8 @@ class SurveyNavigator(Node):
                                        self.settings['gnss_offset'], self.settings['initial_heading_noise'])
 
         self.step_index = 0
+        # The line whose start the rover last stopped at for the operator
+        self.waited_line = 1
         self.commanded_speed = 0.0
         self.measured_speed = 0.0
         self.yaw_rate = 0.0
@@ -97,6 +112,8 @@ class SurveyNavigator(Node):
         self.transform_broadcaster = TransformBroadcaster(self)
         self.path_publisher = self.create_publisher(
             Path, 'survey_path', QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
+        self.lines_publisher = self.create_publisher(
+            Path, 'survey_lines', QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
         self.create_subscription(NavSatFix, 'gps/fix', self.on_fix, 10)
         self.create_subscription(TwistWithCovarianceStamped, 'gps/fix_velocity', self.on_velocity, 10)
         self.create_subscription(Imu, 'imu/data', self.on_imu, 10)
@@ -127,14 +144,8 @@ class SurveyNavigator(Node):
 
     def publish_route(self):
         """The whole driven route, latched, so a page opened mid-survey still shows it."""
-        message = Path()
-        message.header.frame_id = 'map'
+        message = path_message(self.route)
         message.header.stamp = self.get_clock().now().to_msg()
-        for point in self.route:
-            pose = PoseStamped()
-            pose.pose.position.x, pose.pose.position.y = point
-            pose.pose.orientation.w = 1.0
-            message.poses.append(pose)
         self.route_publisher.publish(message)
 
     def record_route(self):
@@ -156,13 +167,32 @@ class SurveyNavigator(Node):
             'towed_length': self.settings['towed_length'],
             'lidar_yaw': self.settings['lidar_yaw'],
             'goal': self.goal(),
-            'line': max(1, sum(start <= self.step_index for start in self.line_starts())),
+            'line': self.current_line(),
+            'waiting_at_line_start': self.mode == 'idle' and self.waited_line == self.current_line() > 1,
             'lines': len(self.line_starts()),
             'speed': self.commanded_speed, 'heading': float(np.degrees(self.estimator.heading)),
             'cross_track': float(cross_track), 'detour': float(self.detour_offset),
             'obstacles': int(len(self.obstacle_points)),
             'blocked_in': float(min(self.blocking_distance(), 99.0)) if self.survey_line is not None else 99.0,
         })))
+
+    def current_line(self):
+        return max(1, sum(start <= self.step_index for start in self.line_starts()))
+
+    def grid_survey_lines(self):
+        return survey_lines(self.settings['grid_width'], self.settings['grid_length'],
+                            self.settings['line_spacing'], *self.grid)
+
+    def line_start_ahead(self):
+        """Distance to the start of this survey line while the operator still has to start it there, else None.
+
+        Line 1 waits for Start before the rover moves at all; every later line waits at its start after the turn.
+        """
+        line = self.current_line()
+        if not self.settings['wait_at_line_start'] or self.state != 'SURVEYING' or line == self.waited_line:
+            return None
+        start, end = self.grid_survey_lines()[line - 1]
+        return -float(line_frame(self.estimator.position[None, :], start, end)[0][0])
 
     def line_starts(self):
         """Index of the first step of every survey line; detours splice extra steps into a line."""
@@ -181,19 +211,10 @@ class SurveyNavigator(Node):
         return None
 
     def publish_path(self):
-        """Publishes the survey lines and headland turns as generated; detours are never drawn."""
-        message = Path()
-        message.header.frame_id = 'map'
-        for step in self.mission:
-            if step[0] == 'turn':
-                continue
-            for point in step[1:]:
-                pose = PoseStamped()
-                pose.header.frame_id = 'map'
-                pose.pose.position.x, pose.pose.position.y = float(point[0]), float(point[1])
-                pose.pose.orientation.w = 1.0
-                message.poses.append(pose)
-        self.path_publisher.publish(message)
+        """Publishes the route as generated (detours never drawn) and the survey lines' real ends."""
+        route = [point for step in self.mission if step[0] != 'turn' for point in step[1:]]
+        self.path_publisher.publish(path_message(route))
+        self.lines_publisher.publish(path_message([point for line in self.grid_survey_lines() for point in line]))
 
     def on_fix(self, message):
         position = self.tangent_plane.to_local(message.latitude, message.longitude)
@@ -253,6 +274,7 @@ class SurveyNavigator(Node):
     def restart(self):
         """Clearing an emergency stop restarts the survey from line 1 on the same grid, in idle until Start."""
         self.step_index = 0
+        self.waited_line = 1
         self.survey_line = None
         self.detour_offset = 0.0
         self.turn_target = None
@@ -467,11 +489,20 @@ class SurveyNavigator(Node):
             return
 
         remaining = self.run_remaining()
+        line_start = self.line_start_ahead()
+        if line_start is not None and line_start <= self.settings['arrival_tolerance']:
+            self.waited_line = self.current_line()
+            self.mode = 'idle'
+            self.halt()
+            self.get_logger().info(f'at the start of line {self.waited_line}: waiting for Start')
+            return
         if remaining > self.settings['arrival_tolerance']:
             if self.drive_frame()[1] <= 0.0 and self.step_index + 1 < self.run_end():
                 self.step_index += 1
             direction, _, cross_track = self.drive_frame()
             to_stop = remaining + self.steps_length(self.run_end(), self.stop_ahead())
+            if line_start is not None:
+                to_stop = min(to_stop, line_start)
             self.command_publisher.publish(self.drive_command(direction, to_stop, cross_track))
             return
 

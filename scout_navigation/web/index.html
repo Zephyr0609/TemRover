@@ -22,7 +22,10 @@
   #clock { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; margin-left: 6px; }
   main { display: grid; grid-template-columns: 1fr 340px; gap: 14px; padding: 0 20px 20px; min-height: 0; }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 1px 2px rgba(16, 24, 40, .04); min-height: 0; }
+  .left { display: grid; grid-template-rows: 1fr 240px; gap: 14px; min-height: 0; }
   #map { position: relative; overflow: hidden; }
+  .plots { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr); gap: 8px; padding: 10px 12px; overflow: hidden; }
+  .plots canvas { min-width: 0; min-height: 0; }
   #map .k { position: absolute; top: 12px; left: 16px; }
   canvas { display: block; width: 100%; height: 100%; }
   aside { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
@@ -42,7 +45,8 @@
   #stop { background: var(--red); }
   #stop.resume { background: var(--green); }
   @media (max-width: 900px) {
-    main { grid-template-columns: 1fr; grid-template-rows: 60vh auto; }
+    main { grid-template-columns: 1fr; grid-template-rows: auto auto; }
+    .left { grid-template-rows: 60vh 240px; }
   }
 </style>
 </head>
@@ -54,9 +58,15 @@
   <span id="clock"></span>
 </header>
 <main>
-  <div class="card" id="map">
-    <span class="k">Survey lines and driven route · scroll to zoom, drag to pan, double-click to reset</span>
-    <canvas id="mapCanvas"></canvas>
+  <div class="left">
+    <div class="card" id="map">
+      <span class="k">Survey lines and Rover, Tx, Rx tracks · scroll to zoom, drag to pan, double-click to reset</span>
+      <canvas id="mapCanvas"></canvas>
+    </div>
+    <div class="card plots">
+      <canvas id="separationPlot"></canvas>
+      <canvas id="offsetPlot"></canvas>
+    </div>
   </div>
   <aside>
     <div class="card" id="camera"><img id="video" alt=""></div>
@@ -88,16 +98,23 @@ const LIDAR_OFFSET = 0.34;
 // Scout 2.0 (scout_v2.xacro) and the Tx/Rx carts (temrover_carts.xacro), metres in base_link frame
 const ROVER = { body: [0.925, 0.38], wheel: [0.329, 0.117], wheels: [[0.249, 0.292], [0.249, -0.292], [-0.249, 0.292], [-0.249, -0.292]],
                 lidar: 0.34, antenna: -0.30, tow: -0.47 };
-// Each PVC link is pinned at its midpoint. reach: pivot to cart centre; axle: pivot to the wheels' effective axle;
+// Each PVC link is pinned at its midpoint. reach: pivot to cart centre; axle: pivot to the fixed rear axle (front wheels are casters);
 // hitch: cart front where its V frame starts; tow: where the next V frame leaves this cart
 const CARTS = [
-  { reach: 1.32, axle: 1.62, hitch: 0.32, tow: -0.923, wheel: [0.26, 0.096], wheels: [[0.1, 0.3], [0.1, -0.3], [-0.7, 0.3], [-0.7, -0.3]] },
-  { reach: 2.23, axle: 2.15, hitch: 0.58, wheel: [0.26, 0.096], wheels: [[0.33, 0], [-0.17, 0.25], [-0.17, -0.25]] },
+  { reach: 1.272, axle: 1.972, hitch: 0.32, tow: -0.923, wheel: [0.26, 0.096], wheels: [[0.1, 0.3], [0.1, -0.3], [-0.7, 0.3], [-0.7, -0.3]] },
+  { reach: 2.216, axle: 2.386, hitch: 0.58, wheel: [0.26, 0.096], wheels: [[0.33, 0], [-0.17, 0.25], [-0.17, -0.25]] },
 ];
-const PIVOTS = [1.0, 1.65];
+const PIVOTS = [0.952, 1.636];
 const CART_BODY = [1.0, 0.6];
 const view = { zoom: 1, cx: 0, cy: 0 };
-const state = { lines: [], route: [], pose: null, scan: [], obstacles: new Map(), status: null };
+// Tx and Rx cart centres as the cart model places them, sampled along the rover's travel
+const PLOT_WINDOW = 60;
+const PLOT_STEP = 1.0;
+const STRAIGHT_SEPARATION = -CARTS[0].tow + PIVOTS[1] + CARTS[1].reach;
+const TRACK_SPACING = 0.2;
+const TRACK_COLOURS = ['#ff7f0e', '#9467bd'];
+const trace = { travelled: 0, sampledAt: -Infinity, last: null, samples: [], tracks: [[], []], replayed: false };
+const state = { lines: [], plan: [], route: [], pose: null, scan: [], obstacles: new Map(), status: null };
 
 const topic = (name, type, throttle) => new ROSLIB.Topic({ ros, name, messageType: type, throttle_rate: throttle || 0 });
 const modeTopic = topic('/survey_mode', 'std_msgs/String');
@@ -107,18 +124,21 @@ ros.on('connection', () => setPill('link', true));
 ros.on('close', () => setPill('link', false));
 ros.on('error', () => setPill('link', false));
 
-topic('/survey_path', 'nav_msgs/Path').subscribe(m => {
+topic('/survey_lines', 'nav_msgs/Path').subscribe(m => {
   // A new set of lines means a new run: what was seen before belongs to the old heading estimate
   state.obstacles.clear();
   const points = m.poses.map(p => [p.pose.position.x, p.pose.position.y]);
-  const pairs = [];
-  for (let i = 0; i + 1 < points.length; i += 2) pairs.push([points[i], points[i + 1]]);
-  const shortest = Math.min(...pairs.map(([a, b]) => Math.hypot(b[0] - a[0], b[1] - a[1])));
-  // Drive steps alternate survey line and connector; the connector is one line spacing long
-  state.lines = pairs.map(([a, b]) => ({ a, b, connector: Math.hypot(b[0] - a[0], b[1] - a[1]) < 2 * shortest }));
+  state.lines = [];
+  for (let i = 0; i + 1 < points.length; i += 2) state.lines.push({ a: points[i], b: points[i + 1] });
+  Object.assign(trace, { travelled: 0, sampledAt: -Infinity, last: null, samples: [], tracks: [[], []], replayed: false });
+});
+// The route the rover drives: each line run past its ends, joined by the turns
+topic('/survey_path', 'nav_msgs/Path').subscribe(m => {
+  state.plan = m.poses.map(p => [p.pose.position.x, p.pose.position.y]);
 });
 topic('/driven_route', 'nav_msgs/Path').subscribe(m => {
   state.route = m.poses.map(p => [p.pose.position.x, p.pose.position.y]);
+  if (!trace.replayed) replayRoute(state.route);
 });
 topic('/estimated_pose', 'geometry_msgs/PoseStamped', 50).subscribe(m => {
   const q = m.pose.orientation;
@@ -161,10 +181,13 @@ const STATE_COLOUR = { SURVEYING: 'var(--green)', TURNING: 'var(--green)', HEADL
                        HOLDING: 'var(--amber)', WAITING_FOR_FIX: 'var(--amber)', LOST: 'var(--red)', STOPPED: 'var(--red)' };
 function renderStatus() {
   const s = state.status;
-  const label = s.emergency_stop ? 'Emergency stop' : s.state.charAt(0) + s.state.slice(1).toLowerCase().replace(/_/g, ' ');
+  const label = s.emergency_stop ? 'Emergency stop'
+    : s.waiting_at_line_start ? `Ready at line ${s.line}`
+    : s.state.charAt(0) + s.state.slice(1).toLowerCase().replace(/_/g, ' ');
   document.getElementById('stateText').textContent = label;
-  document.getElementById('stateDot').style.background = s.emergency_stop ? 'var(--red)' : STATE_COLOUR[s.state];
-  document.getElementById('modeText').textContent = `· ${s.mode}`;
+  document.getElementById('stateDot').style.background = s.emergency_stop ? 'var(--red)'
+    : s.waiting_at_line_start ? 'var(--amber)' : STATE_COLOUR[s.state];
+  document.getElementById('modeText').textContent = s.waiting_at_line_start ? '· press Start when acquisition runs' : `· ${s.mode}`;
   const put = (id, text) => { document.getElementById(id).firstChild.textContent = text; };
   put('line', `${s.line} / ${s.lines}`);
   put('speed', s.speed.toFixed(2));
@@ -172,7 +195,7 @@ function renderStatus() {
   put('cross', signed(s.cross_track, 2));
   put('heading', signed(s.heading, 0));
   const start = document.getElementById('start');
-  start.textContent = s.mode === 'autonomous' ? 'Pause' : 'Start survey';
+  start.textContent = s.mode === 'autonomous' ? 'Pause' : s.waiting_at_line_start ? `Start line ${s.line}` : 'Start survey';
   start.classList.toggle('pause', s.mode === 'autonomous');
   const stop = document.getElementById('stop');
   stop.textContent = s.emergency_stop ? 'Resume' : 'Emergency stop';
@@ -206,7 +229,7 @@ canvas.addEventListener('dblclick', () => { view.zoom = 1; view.cx = 0; view.cy 
 const FONT = '11px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
 function bounds() {
-  const points = state.lines.flatMap(l => [l.a, l.b]).concat(state.route);
+  const points = state.lines.flatMap(l => [l.a, l.b]).concat(state.plan, state.route);
   if (!points.length) {
     const [w, l] = state.status ? state.status.extent : [50, 50];
     return { minX: -3, maxX: l + 3, minY: -3, maxY: w + 3 };
@@ -245,8 +268,7 @@ function drawArrow(X, Y, a, b, size) {
 const train = { previous: null, headings: null, links: [] };
 const along = (point, heading, distance) => [point[0] + distance * Math.cos(heading), point[1] + distance * Math.sin(heading)];
 
-function updateTrain() {
-  const { x, y, yaw } = state.pose;
+function updateTrain(x, y, yaw) {
   let tow = along([x, y], yaw, ROVER.tow), towHeading = yaw;
   if (!train.headings) train.headings = CARTS.map(() => yaw);
   const pivots = [];
@@ -264,11 +286,124 @@ function updateTrain() {
     if (cart.tow !== undefined) [tow, towHeading] = [along(cart.pose, heading, cart.tow), heading];
   });
   train.previous = pivots;
+  recordTrace(x, y, yaw);
+}
+
+// A page opened mid-survey runs the cart model along the route driven so far, heading from point to point
+function replayRoute(route) {
+  Object.assign(train, { previous: null, headings: null, links: [] });
+  Object.assign(trace, { travelled: 0, sampledAt: -Infinity, last: null, samples: [], tracks: [[], []], replayed: true });
+  route.forEach((point, i) => {
+    const before = route[Math.max(i - 1, 0)], after = route[Math.min(i + 1, route.length - 1)];
+    if (route.length > 1) updateTrain(point[0], point[1], Math.atan2(after[1] - before[1], after[0] - before[0]));
+  });
+}
+
+function recordTrace(x, y, yaw) {
+  if (trace.last) trace.travelled += Math.hypot(x - trace.last[0], y - trace.last[1]);
+  trace.last = [x, y];
+  const [tx, rx] = CARTS.map(cart => cart.pose);
+  // Cart tracks for the map, as the cart model places each cart's centre
+  CARTS.forEach((cart, i) => {
+    const track = trace.tracks[i], end = track[track.length - 1];
+    if (!end || Math.hypot(cart.pose[0] - end[0], cart.pose[1] - end[1]) >= TRACK_SPACING) track.push([cart.pose[0], cart.pose[1]]);
+  });
+  if (trace.travelled - trace.sampledAt < PLOT_STEP) return;
+  trace.sampledAt = trace.travelled;
+  trace.samples.push({
+    distance: trace.travelled,
+    separation: Math.hypot(tx[0] - rx[0], tx[1] - rx[1]),
+    // Sideways distance of the Tx from the rover's centreline, left positive
+    offset: -(tx[0] - x) * Math.sin(yaw) + (tx[1] - y) * Math.cos(yaw),
+  });
+  while (trace.samples[0].distance < trace.travelled - PLOT_WINDOW) trace.samples.shift();
+}
+
+// Matplotlib-style line plot: tab:blue and tab:orange, light grid, dots on the measured series
+const PLOT_COLOURS = { blue: '#1f77b4', orange: '#ff7f0e' };
+function niceStep(span, count) {
+  const raw = span / count, power = 10 ** Math.floor(Math.log10(raw));
+  return [1, 2, 2.5, 5, 10].map(f => f * power).find(step => step >= raw);
+}
+
+function drawPlot(plot, title, ylabel, series, yRange) {
+  const pc = plot.getContext('2d'), dpr = window.devicePixelRatio || 1, w = plot.clientWidth, h = plot.clientHeight;
+  if (plot.width !== w * dpr || plot.height !== h * dpr) { plot.width = w * dpr; plot.height = h * dpr; }
+  pc.setTransform(dpr, 0, 0, dpr, 0, 0);
+  pc.fillStyle = '#ffffff'; pc.fillRect(0, 0, w, h);
+  const box = { left: 58, right: w - 12, top: 28, bottom: h - 38 };
+  const distances = trace.samples.map(sample => sample.distance);
+  const x0 = distances.length ? distances[0] : 0, x1 = Math.max(x0 + PLOT_WINDOW / 6, distances.length ? distances[distances.length - 1] : 1);
+  const X = d => box.left + (d - x0) / (x1 - x0) * (box.right - box.left);
+  const Y = v => box.bottom - (v - yRange[0]) / (yRange[1] - yRange[0]) * (box.bottom - box.top);
+
+  pc.font = FONT; pc.fillStyle = '#262626'; pc.strokeStyle = '#e6e6e6'; pc.lineWidth = 1;
+  const xStep = niceStep(x1 - x0, 5), yStep = niceStep(yRange[1] - yRange[0], 4);
+  pc.textAlign = 'center'; pc.textBaseline = 'top';
+  for (let d = Math.ceil(x0 / xStep) * xStep; d <= x1 + 1e-9; d += xStep) {
+    pc.beginPath(); pc.moveTo(X(d), box.top); pc.lineTo(X(d), box.bottom); pc.stroke();
+    pc.fillText(Number(d.toFixed(1)), X(d), box.bottom + 5);
+  }
+  pc.textAlign = 'right'; pc.textBaseline = 'middle';
+  for (let v = Math.ceil(yRange[0] / yStep) * yStep; v <= yRange[1] + 1e-9; v += yStep) {
+    pc.beginPath(); pc.moveTo(box.left, Y(v)); pc.lineTo(box.right, Y(v)); pc.stroke();
+    pc.fillText(Number(v.toFixed(2)), box.left - 6, Y(v));
+  }
+  pc.strokeStyle = '#262626'; pc.strokeRect(box.left, box.top, box.right - box.left, box.bottom - box.top);
+  pc.textAlign = 'center'; pc.textBaseline = 'alphabetic';
+  pc.font = '600 13px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+  pc.fillText(title, (box.left + box.right) / 2, 18);
+  pc.font = FONT;
+  pc.fillText('distance travelled (m)', (box.left + box.right) / 2, h - 6);
+  pc.save(); pc.translate(13, (box.top + box.bottom) / 2); pc.rotate(-Math.PI / 2); pc.fillText(ylabel, 0, 0); pc.restore();
+
+  pc.save(); pc.beginPath(); pc.rect(box.left, box.top, box.right - box.left, box.bottom - box.top); pc.clip();
+  for (const { values, colour, dots } of series) {
+    pc.strokeStyle = colour; pc.fillStyle = colour; pc.lineWidth = 1.8; pc.beginPath();
+    values.forEach((v, i) => i ? pc.lineTo(X(distances[i]), Y(v)) : pc.moveTo(X(distances[i]), Y(v)));
+    pc.stroke();
+    if (dots) for (const [i, v] of values.entries()) { pc.beginPath(); pc.arc(X(distances[i]), Y(v), 2.6, 0, 2 * Math.PI); pc.fill(); }
+  }
+  pc.restore();
+
+  pc.textAlign = 'left'; pc.textBaseline = 'middle';
+  const legendWidth = 12 + Math.max(...series.map(({ label }) => pc.measureText(label).width)) + 34;
+  const lx = box.right - legendWidth - 8, ly = box.top + 8;
+  pc.fillStyle = 'rgba(255,255,255,0.9)'; pc.strokeStyle = '#cccccc';
+  pc.fillRect(lx, ly, legendWidth, 18 * series.length + 6); pc.strokeRect(lx, ly, legendWidth, 18 * series.length + 6);
+  series.forEach(({ label, colour, dots }, i) => {
+    const yy = ly + 12 + 18 * i;
+    pc.strokeStyle = colour; pc.fillStyle = colour; pc.lineWidth = 1.8;
+    pc.beginPath(); pc.moveTo(lx + 8, yy); pc.lineTo(lx + 32, yy); pc.stroke();
+    if (dots) { pc.beginPath(); pc.arc(lx + 20, yy, 2.6, 0, 2 * Math.PI); pc.fill(); }
+    pc.fillStyle = '#262626'; pc.fillText(label, lx + 38, yy);
+  });
+}
+
+function paddedRange(values, minimumSpan) {
+  const low = Math.min(...values), high = Math.max(...values), middle = (low + high) / 2;
+  const half = Math.max(high - low, minimumSpan) * 0.6;
+  return [middle - half, middle + half];
+}
+
+function drawPlots() {
+  const separation = trace.samples.map(sample => sample.separation);
+  const offset = trace.samples.map(sample => sample.offset);
+  const nominal = separation.map(() => STRAIGHT_SEPARATION);
+  drawPlot(document.getElementById('separationPlot'), 'Tx–Rx separation', 'separation (m)', [
+    { values: separation, colour: PLOT_COLOURS.blue, dots: true, label: 'Tx–Rx' },
+    { values: nominal, colour: PLOT_COLOURS.orange, dots: false, label: 'straight train' },
+  ], paddedRange(separation.concat(STRAIGHT_SEPARATION), 0.5));
+  const reach = Math.max(0.5, ...offset.map(Math.abs)) * 1.2;
+  drawPlot(document.getElementById('offsetPlot'), 'Rover–Tx offset', 'offset (m)', [
+    { values: offset, colour: PLOT_COLOURS.blue, dots: true, label: 'Tx sideways of rover' },
+    { values: offset.map(() => 0), colour: PLOT_COLOURS.orange, dots: false, label: 'on the centreline' },
+  ], [-reach, reach]);
 }
 
 function drawTrain(X, Y, scale) {
   if (!(state.status && state.status.towed_length > 0)) return;
-  updateTrain();
+  updateTrain(state.pose.x, state.pose.y, state.pose.yaw);
   ctx.strokeStyle = '#1f2937'; ctx.lineWidth = Math.max(1, 0.04 * scale);
   for (const [tow, pivot, front] of train.links) {
     ctx.beginPath(); ctx.moveTo(X(tow[0]), Y(tow[1])); ctx.lineTo(X(pivot[0]), Y(pivot[1])); ctx.lineTo(X(front[0]), Y(front[1])); ctx.stroke();
@@ -312,13 +447,16 @@ function draw() {
   const cell = Math.max(2, OBSTACLE_CELL * scale);
   for (const [x, y] of state.obstacles.values()) ctx.fillRect(X(x) - cell / 2, Y(y) - cell / 2, cell, cell);
 
+  ctx.strokeStyle = '#c3cfdd'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.beginPath();
+  state.plan.forEach(([x, y], i) => i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)));
+  ctx.stroke(); ctx.setLineDash([]);
   ctx.strokeStyle = '#9db4d0'; ctx.fillStyle = '#9db4d0'; ctx.lineWidth = 1.5;
-  for (const { a, b: e, connector } of state.lines) {
-    ctx.setLineDash(connector ? [4, 4] : []);
+  for (const { a, b: e } of state.lines) {
     ctx.beginPath(); ctx.moveTo(X(a[0]), Y(a[1])); ctx.lineTo(X(e[0]), Y(e[1])); ctx.stroke();
-    if (!connector) drawArrow(X, Y, a, e, 5);
+    drawArrow(X, Y, a, e, 5);
+    // Line ends as surveyed: where the Tx starts and stops measuring
+    for (const [x, y] of [a, e]) { ctx.beginPath(); ctx.arc(X(x), Y(y), 3, 0, 2 * Math.PI); ctx.fill(); }
   }
-  ctx.setLineDash([]);
 
   ctx.fillStyle = 'rgba(24, 128, 56, 0.6)';
   for (const [x, y] of state.scan) ctx.fillRect(X(x) - 1, Y(y) - 1, 2, 2);
@@ -328,6 +466,13 @@ function draw() {
     state.route.forEach(([x, y], i) => i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)));
     if (state.pose) ctx.lineTo(X(state.pose.x), Y(state.pose.y));
     ctx.stroke();
+  }
+  if (state.status && state.status.towed_length > 0) {
+    trace.tracks.forEach((track, i) => {
+      ctx.strokeStyle = TRACK_COLOURS[i]; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.beginPath();
+      track.forEach(([x, y], j) => j ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)));
+      ctx.stroke();
+    });
   }
   if (state.pose) { drawTrain(X, Y, scale); drawRover(X, Y, scale); }
   ctx.restore();
@@ -343,8 +488,8 @@ function draw() {
   ctx.fillText('East (m)', left + spanX / 2, h - 8);
   ctx.save(); ctx.translate(14, top + spanY / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('North (m)', 0, 0); ctx.restore();
 
-  const legend = [['#9db4d0', 'survey line'], ['#1e63d6', 'driven route'], ['#374151', 'obstacle'], ['rgba(217,48,37,0.25)', `keep-out ${corridor.toFixed(1)} m`]];
-  const lw = 128, lh = 16 * legend.length + 10, lx = left + spanX - lw - 10, ly = top + 10;
+  const legend = [['#9db4d0', 'survey line'], ['#1e63d6', 'Rover'], [TRACK_COLOURS[0], 'Tx'], [TRACK_COLOURS[1], 'Rx']];
+  const lw = 104, lh = 16 * legend.length + 10, lx = left + spanX - lw - 10, ly = top + 10;
   ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fillRect(lx, ly, lw, lh);
   ctx.strokeStyle = '#e3e6ea'; ctx.strokeRect(lx, ly, lw, lh);
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
@@ -355,6 +500,7 @@ function draw() {
 }
 
 setInterval(draw, 50);
+setInterval(drawPlots, 250);
 setInterval(() => { document.getElementById('clock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }, 1000);
 </script>
 </body>

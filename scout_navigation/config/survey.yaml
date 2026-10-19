@@ -72,3 +72,5 @@
     imu_yaw_sign: 1.0
     # The rover waits until the operator presses Start on the dashboard
     start_mode: idle
+    # After every turn the rover stops at the next line's start until Start, so data acquisition can be set up
+    wait_at_line_start: true

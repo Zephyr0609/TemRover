@@ -821,3 +821,54 @@ crown height; the crowns are also collision meshes, so low branches and shrubs a
 lidar and the bumper. 9 trees around the grid; scene sky added. `results/royal_park_trees.jpg`.
 Trees are now behind a `trees` launch switch, off by default: none stands in the grid and the
 crowns' undersides and trunk positions are inferred, not measured. `trees:=true` brings them back.
+
+**Turn start set by the Tx, not the Rx (14 Oct).** In the field only the Tx has to reach the line
+end before the rover turns; the Rx may already be turning. `headland` 8 m → 3.09 m, the rover
+centre to Tx axle distance (1.47 + 1.62 m): the rover drives 3.09 m past each line end, the Tx is
+then at the end and the Rx 4.4 m short of it. At the start of the next line the same run-in is
+enough, since the Tx is straight (5 cm, 1°) 2.2 m after the rover leaves a 6 m turn.
+`experiments/turn_design.py` now settles on the Tx: headland = max(rover→Tx, Tx settle distance),
+3.1 m for every radius from 3 m up. Each turn is about 10 m shorter.
+
+**Real line ends on the map and in the scene.** The navigator also latches `survey_lines`: each
+line's start and end as surveyed, without the run past them. The dashboard draws these solid with
+an arrow and a dot at both ends, and `survey_path` (everything the rover drives: the run past the
+ends and the U-turns) thin and dashed underneath. Gazebo gets the same lines at launch from the
+site and payload files (`survey_marker.py`): a white ribbon per line, a flat green disc at its start
+and an orange one at its end (flat, since the simulated lidar sees visuals). The static `worlds/survey_path.sdf` and `make_path_marker.py` are gone;
+they were drawn for the default site only and included the run past the ends.
+
+**Turn radius 6 → 8 m.** With the train in Gazebo the first 6 m bulb took 158 s for about 38 m
+(0.25 m/s against 0.9 commanded): the rover was swung out up to 1.66 m from the plan and entered
+line 2 1.15 m off, carts folded. In the kinematic model 8 m lowers the largest hitch angles from
+29°/52° to 22°/40° (rover–Tx / Tx–Rx), for a 53 m turn instead of 38 m; the Tx straightens within
+1.9 m, so the 3.09 m run past the ends stays. Not changed: the steering law has no curvature
+feed-forward, so it lags on every arc.
+
+**Plain U-turns, far point 15 m past the line end (19 Oct).** The bulb turn is ruled out: it
+swings out the wrong way before turning. A turn that only turns one way can be no wider than the
+line spacing, so its tightest radius is half of it: `turn_radius` 2.5 m, which `u_turn` lays as a
+semicircle (Π with no straight across). `headland` 12.5 m puts the U's far point 15 m past the
+line end and leaves 12.5 m of straight before the next line (the Tx needs 3.8 m to straighten after
+a 2.5 m turn). Cost in the kinematic model: largest hitch angles 64° rover–Tx and 89° Tx–Rx, so the
+PVC links must allow that much.
+
+**Front casters, fixed rear wheels.** The carts' front wheels are casters and the rear pair is
+fixed, so each cart turns about its rear axle, not the middle of its wheel set. Gazebo carts now
+roll on the rear pair with frictionless spheres for the casters (Tx two, Rx one); `payload.yaml`
+pivot-to-axle 1.62 → 2.02 m (Tx) and 2.15 → 2.40 m (Rx), Tx axle to the next pivot 2.27 → 1.87 m;
+the dashboard's cart model follows. The hitch limit opens from 69° to 90° until the PVC X-link is
+measured. Longer trailers swing wider: on the 2.5 m U the model now peaks at 72° rover–Tx and 92°
+Tx–Rx, past that limit.
+
+**Stop at each line start for the operator.** After every turn the rover slows to a stop at the
+next line's real start (the dot on the map) and switches itself to idle, so the operator can start
+the data acquisition; the dashboard shows "Ready at line N" and the button reads "Start line N".
+Line 1 already waits for Start. `wait_at_line_start` in `survey.yaml`, on by default. The stop is at
+the rover, so the Tx, about 3.5 m behind, is still short of the line start: nothing is lost.
+
+**Link lengths from the build drawing (19 Oct).** Rover–Tx: an X of two V frames with 96 cm sides
+on a 25 cm base, 0.952 m each side of the pin (was 1.0 m). Tx–Rx: a 58 cm-sided V and a 107 cm rod
+each side of the pin, 1.636 m (was 1.65 m). Gazebo rods 1.904 and 3.272 m; `payload.yaml` offsets
+1.422 / 1.859 m, cart lengths 1.972 / 2.386 m; dashboard model to match. Under 5 cm everywhere, so
+the 2.5 m U barely changes in the kinematic model: peaks 71° rover–Tx and 91° Tx–Rx (from 72°/92°).

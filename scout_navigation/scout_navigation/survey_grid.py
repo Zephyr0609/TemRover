@@ -35,26 +35,45 @@ def u_turn(spacing, radius, segment_length):
     ])
 
 
+def grid_lines(width, length, line_spacing):
+    """Start and end of every survey line in the grid frame, driven back and forth from (0, 0)."""
+    lines = []
+    for line in range(int(round(width / line_spacing)) + 1):
+        ends = (np.array([0.0, line * line_spacing]), np.array([length, line * line_spacing]))
+        lines.append(ends if line % 2 == 0 else ends[::-1])
+    return lines
+
+
+def placement(bearing, origin):
+    """Maps grid-frame points onto the map: rotated to the grid bearing, then moved to the origin."""
+    rotation = np.array([[np.cos(bearing), -np.sin(bearing)], [np.sin(bearing), np.cos(bearing)]])
+    return lambda points: origin + points @ rotation.T
+
+
+def survey_lines(width, length, line_spacing, bearing, origin):
+    """The survey lines as measured on the ground, without the run past their ends."""
+    place = placement(bearing, origin)
+    return [(place(start), place(end)) for start, end in grid_lines(width, length, line_spacing)]
+
+
 def generate_survey_mission(width, length, line_spacing, bearing, origin,
                             turn_radius, headland, segment_length):
     """Survey lines joined by spot turns, or by driven U-turns when a turn radius is given.
 
-    With a towed train every line is driven `headland` metres past both ends, so the carts are
-    straight on the line before it starts and the last cart clears it before the rover turns.
+    With a towed train every line is driven `headland` metres past both ends, so the Tx cart is
+    straight on the line before it starts and reaches its end before the rover turns.
     """
-    rotation = np.array([[np.cos(bearing), -np.sin(bearing)], [np.sin(bearing), np.cos(bearing)]])
-    place = (lambda points: origin + points @ rotation.T)
-    line_count = int(round(width / line_spacing)) + 1
+    place = placement(bearing, origin)
+    lines = grid_lines(width, length, line_spacing)
     steps = []
 
-    for line in range(line_count):
+    for line, (start, end) in enumerate(lines):
         forward = line % 2 == 0
-        y = line * line_spacing
-        start = np.array([-headland if forward else length + headland, y])
-        end = np.array([length + headland if forward else -headland, y])
+        run_past = headland * (end - start) / length
+        start, end = start - run_past, end + run_past
         steps.append(('drive', place(start), place(end)))
 
-        if line == line_count - 1:
+        if line == len(lines) - 1:
             break
 
         if turn_radius == 0.0:

@@ -47,6 +47,7 @@ flowchart LR
 | `obstacle_monitor.py` | 激光数据处理：去地面、去坡面、只留前方 60° 扇区、转到世界坐标 |
 | `detour.py` | 绕行几何：选边、只看最近一组障碍、按侧向加速度算坡道长度、绕完马上回线 |
 | `survey_grid.py` | 生成测线任务：不挂拖车是直线 + 原地转 90°；挂拖车是每条线两头各多开一段，再接 U 型弯（Π 形或水滴形） |
+| `survey_marker.py` | Gazebo 里的测线标记：每条线一条白带，真实起点绿色圆片、终点橙色圆片，贴地（启动时按场地参数生成） |
 | `geodesy.py` | 经纬度 ↔ 东北坐标（米） |
 | `scout_can_bridge.py` | `/cmd_vel` ↔ Scout 2.0 CAN 帧；0.5 s 收不到指令自动停车 |
 | `imu_driver.py` | 读 ICM-20948（改自 ej5962/Capstone），开机静止 3 s 测陀螺零偏后发 `imu/data` |
@@ -66,6 +67,8 @@ flowchart LR
 
 模式（页面按钮）：`idle` 暂停保留进度，`autonomous` 继续，`manual` 交给遥控节点。
 
+每个弯之后，车在下一条线的真实起点减速停下、切到 `idle`（页面显示 Ready at line N），等操作员开好数据采集再按 Start line N（`wait_at_line_start`）。
+
 ## 五、配置 `config/`
 
 | 文件 | 内容 |
@@ -74,7 +77,7 @@ flowchart LR
 | `field_today.yaml` | 短测量现场模板：起点坐标、方向、线数、雷达朝后 |
 | `south_lawn.yaml` | 南草坪 30 × 30 m 测区（MGA55 测量点） |
 | `royal_park.yaml` | 皇家公园 50 × 50 m 固定测区，起点 W00，GDA2020 |
-| `payload.yaml` | 拖车几何（PVC 连杆中点铰接）、U 型弯半径 6 m、线两头多开 8 m |
+| `payload.yaml` | 拖车几何（PVC 连杆中点铰接）、U 型弯半径 2.5 m（线距一半，不外甩）、线两头多开 12.5 m（弯最远点离终点 15 m） |
 | `ublox_rover.yaml` | ZED-F9P 驱动：只读不改接收机配置，发 `gps/fix`、`gps/fix_velocity` |
 | `obstacles.yaml` | 仿真里的 7 个测试障碍物 |
 | `survey.rviz` | rviz 视图 |
@@ -99,7 +102,7 @@ flowchart LR
 | `compare_planners.py` | 两次跑的轨迹叠图对比 |
 | `record_video.py` / `compose_video.py` | 录俯视视频、两段并排 |
 | `make_avoidance_figures.py` | 避障原理示意图 1–4 |
-| `make_path_marker.py` / `make_terrain.py` | 生成 Gazebo 测线标记和起伏地形 |
+| `make_terrain.py` | 生成 Gazebo 起伏地形 |
 | `turn_design.py` | 拖车运动学：按铰接几何选 U 型弯半径和线两头的延长距离 |
 | `make_royal_park_world.py` | 无人机点云 + 正射影像 → 带贴图的地面网格、碰撞网格、树干，生成皇家公园 Gazebo 世界 |
 | `bench_scan.py` | 车架空时用的假激光，台架测试绕行 |
