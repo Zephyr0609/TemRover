@@ -46,6 +46,8 @@ def generate_launch_description():
         TimerAction(period=5.0, condition=IfCondition(LaunchConfiguration('gnss')), actions=[
             Node(package='nmea_navsat_driver', executable='nmea_tcpclient_driver', name='gnss', output='screen',
                  parameters=[{'ip': '127.0.0.1', 'port': LaunchConfiguration('nmea_port')}],
+                 # Without a fix every empty sentence is a warning, ten a second
+                 ros_arguments=['--log-level', 'error'],
                  remappings=[('fix', 'gps/fix'), ('vel', 'gps/vel')])]),
 
         # Slamtec's own S2 launch, resolved only when the lidar is enabled
