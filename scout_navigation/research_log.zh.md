@@ -1287,3 +1287,8 @@ RTK 改正（GGA 质量 1），所以测线平移 2.6 m 对到单点定位上，
 载噪比中位数只有 34–38 dB-Hz（天线下已经垫了金属底板）；`GDA2020-RTCM3` 挂载点只发 GPS 和 GLONASS（RTCM 3.1 的
 1004/1012，VRS），大约一半在跟踪的卫星没有改正。VicPos 的 `RTXNet-RTCM32` 是同一个 GPSnet GDA2020 网络，发 GPS、GLONASS、
 Galileo、北斗、QZSS 的 MSM7；我们的账号能用。`field.launch.py` 把它传给 RTK 桥（`ntrip_mount`）。
+换了新挂载点才暴露出真正的问题：每秒收到 2 KB 改正，接收机的改正龄期却一直增长。VicPos 对 RTK 桥的 NTRIP 2.0 请求，
+两个挂载点都用 `Transfer-Encoding: chunked` 分块返回，而 RTK 桥原样把数据（连同分块长度行）写进接收机。GPS/GLONASS 的
+RTCM 3.1 小帧大多还能通过（所以能浮点、到不了固定）；MSM7 大帧几乎全被打断。用 NTRIP 1.0 请求，caster 回 `ICY 200 OK`
+并直接发原始 RTCM，RTK 桥本来就支持。`scout_navigation/ntrip_proxy.py` 在 127.0.0.1:2101 监听，把 RTK 桥的请求去掉
+Ntrip-Version 头后转发；`field.launch.py` 让 RTK 桥连这个代理。队友的脚本没改，账号只是经过代理。

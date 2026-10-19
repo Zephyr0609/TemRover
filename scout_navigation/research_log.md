@@ -911,3 +911,11 @@ minutes with 29–33 satellites and HDOP 0.4. Two causes found: C/N0 medians of 
 GLONASS only (RTCM 3.1 1004/1012, VRS), so about half the tracked satellites had no corrections.
 VicPos's `RTXNet-RTCM32` is the same GPSnet GDA2020 network with MSM7 for GPS, GLONASS, Galileo,
 BeiDou and QZSS; the account reaches it. `field.launch.py` passes it to the bridge (`ntrip_mount`).
+The new mountpoint then showed the real fault: the receiver's correction age kept growing while
+2 KB/s arrived. VicPos answers the bridge's NTRIP 2.0 request with `Transfer-Encoding: chunked` on
+both mountpoints, and the bridge writes the body to the receiver as it comes, chunk-length lines
+included. Small GPS/GLONASS 3.1 frames mostly survived (hence float, never fixed); MSM7 frames almost
+never do. Asked as NTRIP 1.0 the caster replies `ICY 200 OK` with plain RTCM, which the bridge
+already accepts. `scout_navigation/ntrip_proxy.py` listens on 127.0.0.1:2101 and forwards the
+bridge's request without its Ntrip-Version header; `field.launch.py` points the bridge at it. The
+team's script is unchanged and its credentials only pass through.
