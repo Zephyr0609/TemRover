@@ -1,0 +1,19 @@
+/**:
+  ros__parameters:
+    # Concrete lawn, Parkville: the team's Concrete_Lawn waypoints (5 Oct). Line 1 is P1 -> P2,
+    # line 2 is P3 -> P4, 5 m to the right of line 1 and driven back
+    origin_latitude: -37.797024304
+    origin_longitude: 144.961528570
+    # P1 -> P2: 23.761 m, 8.23 deg south of east
+    grid_bearing: -0.143693
+    grid_length: 23.761
+    # Two lines; a negative spacing steps them to the right of line 1's direction
+    grid_width: 5.0
+    line_spacing: -5.0
+    anchor_to_origin: true
+    cruise_speed: 0.9
+    # The U's far point 10 m past each line end: 7.5 m straight plus the 2.5 m radius
+    turn_radius: 2.5
+    headland: 7.5
+    # No IMU fitted yet: yaw rate from the chassis feedback
+    dead_reckoning: true

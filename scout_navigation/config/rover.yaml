@@ -1,0 +1,5 @@
+/**:
+  ros__parameters:
+    # Mounting of the real rover's sensors; only hardware.launch.py loads this, so Gazebo keeps its own
+    # This RPLIDAR S2L reads its zero bearing aft, so every return sat 180 deg out until measured
+    lidar_yaw: 3.141593

@@ -11,6 +11,7 @@ from launch_ros.actions import Node
 CONFIG = os.path.join(get_package_share_directory('scout_navigation'), 'config')
 SURVEY = os.path.join(CONFIG, 'survey.yaml')
 PAYLOAD = os.path.join(CONFIG, 'payload.yaml')
+ROVER = os.path.join(CONFIG, 'rover.yaml')
 
 
 def generate_launch_description():
@@ -24,7 +25,7 @@ def generate_launch_description():
 
         Node(package='scout_navigation', executable='survey_navigator', name='survey_navigator',
              output='screen', emulate_tty=True,
-             parameters=[SURVEY, LaunchConfiguration('payload'), LaunchConfiguration('site')]),
+             parameters=[SURVEY, ROVER, LaunchConfiguration('payload'), LaunchConfiguration('site')]),
 
         Node(package='scout_navigation', executable='scout_can_bridge', name='scout_can_bridge',
              output='screen', parameters=[SURVEY]),

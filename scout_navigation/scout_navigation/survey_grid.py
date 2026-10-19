@@ -36,9 +36,12 @@ def u_turn(spacing, radius, segment_length):
 
 
 def grid_lines(width, length, line_spacing):
-    """Start and end of every survey line in the grid frame, driven back and forth from (0, 0)."""
+    """Start and end of every survey line in the grid frame, driven back and forth from (0, 0).
+
+    A positive spacing steps each line to the left of line 1's direction, a negative one to the right.
+    """
     lines = []
-    for line in range(int(round(width / line_spacing)) + 1):
+    for line in range(int(round(width / abs(line_spacing))) + 1):
         ends = (np.array([0.0, line * line_spacing]), np.array([length, line * line_spacing]))
         lines.append(ends if line % 2 == 0 else ends[::-1])
     return lines
@@ -76,15 +79,16 @@ def generate_survey_mission(width, length, line_spacing, bearing, origin,
         if line == len(lines) - 1:
             break
 
+        side = np.sign(line_spacing)
         if turn_radius == 0.0:
-            quarter = np.pi / 2.0 if forward else -np.pi / 2.0
+            quarter = side * (np.pi / 2.0 if forward else -np.pi / 2.0)
             steps.append(('turn', quarter))
             steps.append(('headland', place(end), place(end + np.array([0.0, line_spacing]))))
             steps.append(('turn', quarter))
             continue
 
-        # Mirror the left U-turn for lines driven towards -x, then lay it at the line end
-        local = u_turn(line_spacing, turn_radius, segment_length)
+        # Mirror the left U-turn for lines driven towards -x and for lines stepping right
+        local = u_turn(abs(line_spacing), turn_radius, segment_length) * np.array([1.0, side])
         path = end + (local if forward else local * np.array([-1.0, 1.0]))
         points = np.vstack([end, path])
         steps.extend(('headland', place(a), place(b)) for a, b in zip(points[:-1], points[1:]))

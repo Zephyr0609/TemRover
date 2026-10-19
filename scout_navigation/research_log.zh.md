@@ -1273,3 +1273,12 @@ RTK 改正（GGA 质量 1），所以测线平移 2.6 m 对到单点定位上，
 `nmea_navsat_driver` 的 TCP 客户端，重映射成 `gps/fix` 和 `gps/vel`。接收机以 10 Hz 发 GGA、RMC、VTG，所以 EKF 修正航向用的
 航迹角和速度改从 `gps/vel`（TwistStamped，东/北）取，不再用 u-blox 的 `fix_velocity`。`ublox_rover.yaml` 删掉。NTRIP 账号
 留在队友的脚本里，不进这个公开仓库。
+
+**Concrete lawn 场地；测线向右排；雷达安装属于车本身（10 月 19 日）。** 队友的 Concrete_Lawn 航点（P1→P2、P3→P4）
+是两条 23.761 m、相距 5 m 的线，第二条在第一条右边。`grid_lines` 和 `generate_survey_mission` 现在把负的 `line_spacing`
+当作"向右排"：U 型弯（以及原地转弯版本）做镜像，正的线距生成的任务和原来完全一样。`config/concrete_lawn.yaml`：原点 P1，
+方位 −0.143693 rad，R 2.5 m，线两头多开 7.5 m，U 弯最远点离终点 10 m。Gazebo 里车单独跑能走完，并停在第 2 条线起点等待。
+顺带发现：场地文件里的 `lidar_yaw` π 会把仿真雷达翻过来，拖车被当成前方 2.7 m 的障碍，车一直绕到 LOST。传感器安装改放到
+`config/rover.yaml`，只有 `hardware.launch.py` 加载。挂拖车在平地世界里，车在 U 弯中根本转不过去（左转右转都一样，地面摩擦
+和 Royal Park 相同），判 LOST；挂车直行也只有 0.25 m/s（指令 0.9）。之前 Royal Park 同样拖车跑通不能推广，Gazebo 的拖车
+仿真仍然不能用来检验转弯。

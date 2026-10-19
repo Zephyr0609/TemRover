@@ -891,3 +891,16 @@ receiver's port, feeds it VicPos NTRIP corrections, serves NMEA on TCP 12345) an
 and VTG at 10 Hz, so the course and speed the EKF uses for yaw now come from `gps/vel`
 (TwistStamped, east/north) instead of u-blox `fix_velocity`. `ublox_rover.yaml` is gone. The
 bridge's NTRIP account stays in the team's script, not in this public repository.
+
+**Concrete lawn site; lines stepping right; lidar mounting is the rover's (19 Oct).** The team's
+Concrete_Lawn waypoints (P1→P2, P3→P4) are two 23.761 m lines 5 m apart, the second to the right of
+the first. `grid_lines` and `generate_survey_mission` now take a negative `line_spacing` as "step
+right": the U-turn (and the spot-turn variant) is mirrored, positive spacings give exactly the old
+missions. `config/concrete_lawn.yaml`: origin P1, bearing −0.143693 rad, R 2.5 m, run past the ends
+7.5 m so the U's far point is 10 m past each end. In Gazebo the rover alone drives it and stops at
+line 2's start. Found on the way: `lidar_yaw` π in a site file flips the simulated lidar, so the
+towed carts showed up 2.7 m ahead and the rover detoured round them until LOST. Sensor mounting
+now lives in `config/rover.yaml`, which only `hardware.launch.py` loads. With the carts on the flat
+field the rover does not turn at all in the U (left or right, same ground friction as Royal Park)
+and goes LOST; with carts it also crawls at 0.25 m/s against 0.9. The earlier Royal Park success
+with the same carts does not carry over, so Gazebo's towing is still not a test of the turn.

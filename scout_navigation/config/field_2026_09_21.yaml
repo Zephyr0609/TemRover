@@ -16,7 +16,6 @@
     cruise_speed: 0.9
     # No IMU on the rover that day: yaw rate from the chassis feedback, GNSS still required
     dead_reckoning: true
-    lidar_yaw: 3.141593
     # No corrections reached the receiver (GGA quality 1, standalone): survey.yaml's 0.02 is an
     # RTK figure and would have the filter chase metre-scale noise as though it were motion
     gnss_noise: 0.8
