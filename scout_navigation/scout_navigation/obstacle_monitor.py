@@ -1,12 +1,18 @@
 import numpy as np
 
+from .geodesy import wrap_to_pi
+
 
 def scan_points(scan, attitude, sensor_height, minimum_obstacle_height, step_threshold,
-                maximum_object_angle, lidar_yaw=0.0):
+                maximum_object_angle, lidar_yaw=0.0, sector=np.pi, reach=np.inf):
     """Body-frame x, y of every beam that hit a standing object rather than the ground.
 
     lidar_yaw is where the scan's own zero bearing points, measured from the rover's
     forward direction, so a unit bolted on facing aft is pi rather than a code change.
+    sector is the half-angle kept either side of that forward direction; pi keeps the
+    whole turn, and it is applied after lidar_yaw so it is the rover that is faced, not
+    the sensor's own zero. reach discards returns further out than it, for when the far
+    field is not wanted even though the sensor can see it.
     """
     ranges = np.asarray(scan.ranges)
     angles = scan.angle_min + scan.angle_increment * np.arange(len(ranges)) + lidar_yaw
@@ -16,7 +22,9 @@ def scan_points(scan, attitude, sensor_height, minimum_obstacle_height, step_thr
     elevation = -np.sin(pitch) * np.cos(angles) + np.cos(pitch) * np.sin(roll) * np.sin(angles)
     endpoint_height = sensor_height + ranges * elevation
     valid = ((ranges > scan.range_min) & (ranges < scan.range_max)
-             & (endpoint_height > minimum_obstacle_height))
+             & (endpoint_height > minimum_obstacle_height)
+             & (np.abs(wrap_to_pi(angles)) <= sector)
+             & (ranges <= reach))
 
     ranges, angles = standing_objects(ranges[valid], angles[valid], step_threshold,
                                       maximum_object_angle)

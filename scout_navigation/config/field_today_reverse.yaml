@@ -1,0 +1,32 @@
+/**:
+  ros__parameters:
+    # The field_today.yaml line driven the other way: start is that line's far end. Surveyed as
+    # MGA2020 zone 55 E 320409.619 N 5814594.319 = -37.79838590, 144.96016964, and carrying the
+    # same 2.6 m translation as field_today.yaml so the two still describe one line.
+    origin_latitude: -37.79837867
+    origin_longitude: 144.96019866
+    # Back towards E 320451.662 N 5814589.031: 42.374 m on a bearing of -8.419 deg
+    grid_bearing: -0.146942
+    grid_length: 42.374
+    grid_width: 0.0
+    line_spacing: 5.0
+    anchor_to_origin: true
+    cruise_speed: 0.9
+    # No IMU on the rover today: yaw rate comes from the chassis feedback, GNSS still required
+    dead_reckoning: true
+    # This RPLIDAR S2L reads its zero bearing aft, so every return sat 180 deg out until measured
+    lidar_yaw: 3.141593
+    # Only the forward sector is trusted on the real rover: +/-30 deg about the car's nose,
+    # applied after lidar_yaw. Note this blinds swing_clear, which needs the full circle.
+    obstacle_sector: 0.523599
+    # Planning only ever sees what the sector and this reach allow, so it must be far enough
+    # ahead for a ramp: sqrt(6 D v^2 / a) is 2.7 m for a 1.5 m shift at 0.9 m/s
+    obstacle_range: 10.0
+    # No corrections are reaching the receiver: GGA quality reads 1, standalone, not the 4 of an
+    # RTK fix, and the lever arm would turn that metre of wander into tens of degrees of yaw
+    gnss_noise: 0.8
+    gnss_offset: 0.0
+    # Parked facing back down the line: the turn below is what puts it on the grid bearing, and
+    # since nothing measures heading without the alignment run, that is where the start one comes from
+    skip_alignment: true
+    initial_turn: 3.141593

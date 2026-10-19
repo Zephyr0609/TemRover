@@ -29,7 +29,9 @@ PARAMETERS = [
     ('obstacle_standoff', 0.5), ('obstacle_hysteresis', 0.1), ('obstacle_clearance', 0.15),
     ('hold_hysteresis', 0.5),
     ('rover_half_width', 0.35), ('swing_radius', 0.58), ('lidar_offset', 0.34),
-    ('lidar_height', 0.395), ('lidar_yaw', 0.0), ('minimum_obstacle_height', 0.15),
+    ('lidar_height', 0.395), ('lidar_yaw', 0.0), ('obstacle_sector', 3.141593),
+    ('obstacle_range', 30.0),
+    ('minimum_obstacle_height', 0.15),
     ('range_step_threshold', 0.3), ('maximum_object_angle', 1.57),
     ('detour_lookahead', 10.0), ('detour_lateral_acceleration', 1.0),
     ('detour_segment_length', 1.0),
@@ -37,6 +39,7 @@ PARAMETERS = [
     ('gnss_noise', 0.02), ('course_noise', 0.2), ('minimum_course_speed', 0.3),
     ('gnss_offset', -0.30), ('dead_reckoning', False), ('anchor_to_origin', False),
     ('towed_length', 0.0), ('start_mode', 'autonomous'),
+    ('skip_alignment', False), ('initial_turn', 0.0), ('return_pass', False),
     ('route_spacing', 0.25), ('route_period', 2.0),
 ]
 
@@ -107,7 +110,37 @@ class SurveyNavigator(Node):
         self.create_subscription(String, 'survey_mode', self.on_mode, 10)
         self.create_timer(self.settings['control_period'], self.control_step)
 
-        self.get_logger().info('Waiting for a fix, then a straight run to observe heading')
+        if self.settings['skip_alignment']:
+            self.begin_on_the_grid()
+        else:
+            self.get_logger().info('Waiting for a fix, then a straight run to observe heading')
+
+    def begin_on_the_grid(self):
+        """Lays the mission at once, for a rover parked on the surveyed grid.
+
+        The alignment run is the only thing that observes heading, so without it the rover's
+        attitude has to be asserted rather than measured: it is parked so that `initial_turn`
+        leaves it facing along the lines, which makes the start heading that turn's inverse.
+        """
+        bearing = self.settings['grid_bearing']
+        self.estimator.state[2] = wrap_to_pi(bearing - self.settings['initial_turn'])
+        self.grid = (bearing, np.zeros(2))
+        self.mission = generate_survey_mission(
+            self.settings['grid_width'], self.settings['grid_length'],
+            self.settings['line_spacing'], bearing, np.zeros(2))
+        if self.settings['initial_turn']:
+            self.mission.insert(0, ('turn', self.settings['initial_turn']))
+        if self.settings['return_pass']:
+            # Every line driven again the other way, so one run covers the ground twice and ends
+            # where it started; the turn between them is the same spot turn the grid already uses
+            outward = [step for step in self.mission if step[0] == 'drive']
+            self.mission.append(('turn', np.pi))
+            self.mission.extend(('drive', end, start) for _, start, end in reversed(outward))
+        self.publish_path()
+        self.get_logger().info(
+            f'No alignment run: parked at {np.degrees(self.estimator.heading):+.1f} deg, turning '
+            f'{np.degrees(self.settings["initial_turn"]):+.0f} deg onto a '
+            f'{np.degrees(bearing):+.1f} deg grid, {len(self.mission)} mission steps')
 
     def publish_pose(self):
         message = PoseStamped()
@@ -242,7 +275,8 @@ class SurveyNavigator(Node):
         points = scan_points(message, self.attitude, self.settings['lidar_height'],
                              self.settings['minimum_obstacle_height'],
                              self.settings['range_step_threshold'],
-                             self.settings['maximum_object_angle'], self.settings['lidar_yaw'])
+                             self.settings['maximum_object_angle'], self.settings['lidar_yaw'],
+                             self.settings['obstacle_sector'], self.settings['obstacle_range'])
         points = without_towed_train(points, self.settings['lidar_offset'],
                                      self.settings['towed_length'])
         self.obstacle_points = to_world(points, self.estimator.position, self.estimator.heading,
