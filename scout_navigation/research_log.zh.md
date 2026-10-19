@@ -1267,3 +1267,9 @@ Tx–Rx：铰点两边各是 58 cm 边的 V 加 107 cm 直杆，1.636 m（原 1.
 RTK 改正（GGA 质量 1），所以测线平移 2.6 m 对到单点定位上，`gnss_noise` 调到 0.8 m，天线杆臂置零，因为杆臂会把一米的漂移
 变成几十度的航向误差。留在车上备份分支里的：对准阶段检查通道的提交、`skip_alignment`/`initial_turn`（main 已去掉对准）、
 以及依赖它们的反向和来回两个场地文件。
+
+**外场 launch 的 GNSS 改成 LG290P，不是 u-blox。** `field.launch.py` 原来起的是车上没有的 ZED-F9P 驱动。现在起队友的
+`~/ros2_ws/rtk_gps_bridge.py`（自动找接收机串口、把 VicPos NTRIP 改正喂给它、在 TCP 12345 上转发 NMEA），5 s 后再起
+`nmea_navsat_driver` 的 TCP 客户端，重映射成 `gps/fix` 和 `gps/vel`。接收机以 10 Hz 发 GGA、RMC、VTG，所以 EKF 修正航向用的
+航迹角和速度改从 `gps/vel`（TwistStamped，东/北）取，不再用 u-blox 的 `fix_velocity`。`ublox_rover.yaml` 删掉。NTRIP 账号
+留在队友的脚本里，不进这个公开仓库。

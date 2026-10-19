@@ -15,7 +15,7 @@
 
 ```mermaid
 flowchart LR
-    GPS["GNSS<br/>/gps/fix, /gps/fix_velocity"] --> NAV
+    GPS["GNSS（LG290P + RTK 桥）<br/>/gps/fix, /gps/vel"] --> NAV
     IMU["IMU（可选）<br/>/imu/data"] --> NAV
     LID["激光雷达<br/>/scan"] --> NAV
     ODO["底盘反馈<br/>/odom"] --> NAV
@@ -78,7 +78,6 @@ flowchart LR
 | `south_lawn.yaml` | 南草坪 30 × 30 m 测区（MGA55 测量点） |
 | `royal_park.yaml` | 皇家公园 50 × 50 m 固定测区，起点 W00，GDA2020 |
 | `payload.yaml` | 拖车几何（PVC 连杆中点铰接）、U 型弯半径 2.5 m（线距一半，不外甩）、线两头多开 12.5 m（弯最远点离终点 15 m） |
-| `ublox_rover.yaml` | ZED-F9P 驱动：只读不改接收机配置，发 `gps/fix`、`gps/fix_velocity` |
 | `obstacles.yaml` | 仿真里的 7 个测试障碍物 |
 | `survey.rviz` | rviz 视图 |
 

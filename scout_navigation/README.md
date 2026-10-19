@@ -12,12 +12,13 @@ One command per experiment, from this folder:
 ./run.sh sim site:=south_lawn.yaml gz_args:='-r -s -v 2'   # headless, another site
 ```
 
-`run.sh` sources the workspace (`ROS_WS`, default `~/ros2_ws`), brings `can0` up for the field run,
+`run.sh` sources the workspace (`ROS_WS`, default `~/ros2_ws`; on the rover `ROS_WS=~/workspace`, built on top of the team's `~/ros2_ws`), brings `can0` up for the field run,
 prints the dashboard address and starts `field.launch.py` or `sim.launch.py`. A bare site name is
 looked up in `config/`. Field switches: `imu:=false`, `gnss:=false`, `lidar:=false`, `camera:=false`,
-`gnss_port:=/dev/ttyACM0`, `lidar_port:=/dev/ttyUSB0`. The GNSS driver keeps the receiver's own
-configuration (`config/ublox_rover.yaml`); the ZED-F9P must already output UBX NAV-PVT on USB and
-receive its RTK corrections. The lidar uses Slamtec's `sllidar_ros2` S2 launch, built on the rover.
+`lidar_port:=/dev/ttyUSB0`. GNSS is the rover's LG290P through the team's `~/ros2_ws/rtk_gps_bridge.py`
+(`rtk_bridge:=` for another path): it finds the receiver's port, feeds it NTRIP corrections over the
+phone hotspot and serves its NMEA on TCP 12345, which `nmea_navsat_driver` turns into `gps/fix` and
+`gps/vel`. Don't also start RTK GPS from the team's dashboard: one bridge owns the port. The lidar uses Slamtec's `sllidar_ros2` S2 launch, built on the rover.
 
 Royal Park in Gazebo: the drone survey (classified LAZ point cloud and GDA2020 orthophoto, kept
 outside the repository in `../royal_park`) is turned into a textured ground mesh, a collision mesh

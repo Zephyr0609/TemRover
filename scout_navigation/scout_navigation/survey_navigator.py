@@ -2,7 +2,7 @@ import json
 
 import numpy as np
 import rclpy
-from geometry_msgs.msg import PoseStamped, TransformStamped, Twist, TwistWithCovarianceStamped
+from geometry_msgs.msg import PoseStamped, TransformStamped, Twist, TwistStamped
 from nav_msgs.msg import Odometry, Path
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile
@@ -115,7 +115,8 @@ class SurveyNavigator(Node):
         self.lines_publisher = self.create_publisher(
             Path, 'survey_lines', QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
         self.create_subscription(NavSatFix, 'gps/fix', self.on_fix, 10)
-        self.create_subscription(TwistWithCovarianceStamped, 'gps/fix_velocity', self.on_velocity, 10)
+        # East and north antenna velocity from the receiver's RMC/VTG course and speed
+        self.create_subscription(TwistStamped, 'gps/vel', self.on_velocity, 10)
         self.create_subscription(Imu, 'imu/data', self.on_imu, 10)
         # dead_reckoning: no IMU, so the chassis feedback supplies the yaw rate; GNSS is still required
         self.create_subscription(Odometry, 'odom', self.on_chassis_odometry
@@ -239,8 +240,7 @@ class SurveyNavigator(Node):
         self.get_logger().info(f'Survey laid out at {np.degrees(bearing):+.1f} deg, {len(self.mission)} mission steps')
 
     def on_velocity(self, message):
-        self.estimator.update_course(np.array([message.twist.twist.linear.x,
-                                               message.twist.twist.linear.y]), self.yaw_rate)
+        self.estimator.update_course(np.array([message.twist.linear.x, message.twist.linear.y]), self.yaw_rate)
 
     def on_odometry(self, message):
         self.measured_speed = message.twist.twist.linear.x

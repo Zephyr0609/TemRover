@@ -3,7 +3,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, TimerAction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -29,7 +29,9 @@ def generate_launch_description():
         DeclareLaunchArgument('gnss', default_value='true'),
         DeclareLaunchArgument('lidar', default_value='true'),
         DeclareLaunchArgument('camera', default_value='true'),
-        DeclareLaunchArgument('gnss_port', default_value='/dev/ttyACM0'),
+        # The team's LG290P bridge: finds the receiver's port, feeds it NTRIP corrections, serves its NMEA on TCP
+        DeclareLaunchArgument('rtk_bridge', default_value=os.path.expanduser('~/ros2_ws/rtk_gps_bridge.py')),
+        DeclareLaunchArgument('nmea_port', default_value='12345'),
         DeclareLaunchArgument('lidar_port', default_value='/dev/ttyUSB0'),
 
         include(os.path.join(LAUNCH, 'hardware.launch.py'),
@@ -37,10 +39,14 @@ def generate_launch_description():
                  'imu': LaunchConfiguration('imu')}),
         include(os.path.join(LAUNCH, 'dashboard.launch.py'), {'usb_camera': LaunchConfiguration('camera')}),
 
-        Node(package='ublox_gps', executable='ublox_gps_node', name='gnss', output='screen',
-             condition=IfCondition(LaunchConfiguration('gnss')),
-             parameters=[os.path.join(CONFIG, 'ublox_rover.yaml'), {'device': LaunchConfiguration('gnss_port')}],
-             remappings=[('fix', 'gps/fix'), ('fix_velocity', 'gps/fix_velocity')]),
+        ExecuteProcess(cmd=['python3', LaunchConfiguration('rtk_bridge'),
+                            '--tcp-port', LaunchConfiguration('nmea_port')],
+                       name='rtk_bridge', output='screen', condition=IfCondition(LaunchConfiguration('gnss'))),
+        # The bridge needs a moment to find the receiver and open its port before the driver connects
+        TimerAction(period=5.0, condition=IfCondition(LaunchConfiguration('gnss')), actions=[
+            Node(package='nmea_navsat_driver', executable='nmea_tcpclient_driver', name='gnss', output='screen',
+                 parameters=[{'ip': '127.0.0.1', 'port': LaunchConfiguration('nmea_port')}],
+                 remappings=[('fix', 'gps/fix'), ('vel', 'gps/vel')])]),
 
         # Slamtec's own S2 launch, resolved only when the lidar is enabled
         IncludeLaunchDescription(

@@ -883,3 +883,11 @@ shifted 2.6 m onto the standalone fix, `gnss_noise` raised to 0.8 m and the ante
 zeroed, because the lever arm turned a metre of wander into tens of degrees of yaw. Left on the
 rover's backup branch: the alignment-corridor commit, `skip_alignment`/`initial_turn` (alignment
 is gone in main) and the reverse and out-and-back site files that depend on them.
+
+**GNSS in the field launch is the LG290P, not a u-blox.** `field.launch.py` started a ZED-F9P driver
+the rover does not have. It now starts the team's `~/ros2_ws/rtk_gps_bridge.py` (finds the
+receiver's port, feeds it VicPos NTRIP corrections, serves NMEA on TCP 12345) and, 5 s later,
+`nmea_navsat_driver`'s TCP client, remapped to `gps/fix` and `gps/vel`. The receiver sends GGA, RMC
+and VTG at 10 Hz, so the course and speed the EKF uses for yaw now come from `gps/vel`
+(TwistStamped, east/north) instead of u-blox `fix_velocity`. `ublox_rover.yaml` is gone. The
+bridge's NTRIP account stays in the team's script, not in this public repository.
