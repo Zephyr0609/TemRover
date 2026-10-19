@@ -1292,3 +1292,9 @@ Galileo、北斗、QZSS 的 MSM7；我们的账号能用。`field.launch.py` 把
 RTCM 3.1 小帧大多还能通过（所以能浮点、到不了固定）；MSM7 大帧几乎全被打断。用 NTRIP 1.0 请求，caster 回 `ICY 200 OK`
 并直接发原始 RTCM，RTK 桥本来就支持。`scout_navigation/ntrip_proxy.py` 在 127.0.0.1:2101 监听，把 RTK 桥的请求去掉
 Ntrip-Version 头后转发；`field.launch.py` 让 RTK 桥连这个代理。队友的脚本没改，账号只是经过代理。
+
+**改用 pure pursuit，替代"航向 + 横向偏差"反馈。** 在 concrete lawn（单车，RTK 固定，13.8 m 线，2 m U 弯）旧控制律在线上
+来回摆 ±0.2–0.6 m；2 m 的弯开到线终点外 3.0 m 才转，甩出 1.4 m，进第 2 条线时偏 1.4 m：它只对当前 0.5 m 小段的误差做反应，
+而真车底盘比 Gazebo 反应慢。现在车沿着通过前视点的圆弧走，前视点在规划路径上、比车在路径上的垂足再往前 `lookahead_distance`
+（1.5 m）；路径一直连到下一个原地转弯，包括测线、绕行和 U 弯，所以车在到弯之前就开始转。去掉 `cross_track_gain`；`heading_gain`
+只留给原地转弯。监控页状态刷新从 5 Hz 提到 10 Hz。Gazebo 同一个短场地：两条线和弯都走完，在第 2 条线起点停下等待。

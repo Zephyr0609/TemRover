@@ -21,7 +21,8 @@
     rotation_rate: 1.0
 
     heading_gain: 1.5
-    cross_track_gain: 0.8
+    # Pure pursuit steers for the point this far ahead on the path: longer is smoother, shorter tracks tighter
+    lookahead_distance: 1.5
     rotation_damping: 0.6
 
     arrival_tolerance: 0.05

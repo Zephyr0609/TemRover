@@ -167,7 +167,7 @@ topic('/obstacle_points', 'sensor_msgs/PointCloud2', 200).subscribe(m => {
   }
 });
 topic('/gps/fix', 'sensor_msgs/NavSatFix', 1000).subscribe(m => setPill('fix', m.status.status >= 0));
-topic('/survey_status', 'std_msgs/String', 200).subscribe(m => { state.status = JSON.parse(m.data); renderStatus(); });
+topic('/survey_status', 'std_msgs/String', 100).subscribe(m => { state.status = JSON.parse(m.data); renderStatus(); });
 
 document.getElementById('start').onclick = () => {
   const running = state.status && state.status.mode === 'autonomous';

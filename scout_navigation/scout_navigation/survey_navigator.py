@@ -21,7 +21,7 @@ PARAMETERS = [
     ('origin_latitude', -37.7963), ('origin_longitude', 144.9614), ('grid_bearing', 0.0),
     ('grid_width', 50.0), ('grid_length', 50.0), ('line_spacing', 5.0),
     ('cruise_speed', 1.5), ('max_angular_velocity', 1.5),
-    ('max_deceleration', 6.9), ('heading_gain', 1.5), ('cross_track_gain', 0.8),
+    ('max_deceleration', 6.9), ('heading_gain', 1.5), ('lookahead_distance', 1.5),
     ('arrival_tolerance', 0.05), ('halt_speed', 0.05), ('path_deviation_limit', 3.0),
     ('control_period', 0.05), ('startup_delay', 5.0), ('initial_heading_noise', 0.35),
     ('rotation_rate', 1.0), ('rotation_damping', 0.6), ('rotation_tolerance', 0.04),
@@ -426,17 +426,36 @@ class SurveyNavigator(Node):
         command.angular.z = float(np.clip(effort, -limit, limit))
         return command
 
-    def drive_command(self, direction, remaining, cross_track):
+    def lookahead_point(self):
+        """The point lookahead_distance further along the planned path than the rover's foot on it.
+
+        The path runs on through lines, detours and U-turns up to the next spot turn; past its end it
+        carries straight on, so the point is always a full lookahead away.
+        """
+        _, start, end = self.mission[self.step_index]
+        direction = (end - start) / np.hypot(*(end - start))
+        foot = start + direction * np.clip((self.estimator.position - start) @ direction, 0.0, np.hypot(*(end - start)))
+        reach, index = self.settings['lookahead_distance'], self.step_index
+        while True:
+            _, start, end = self.mission[index]
+            to_end = float(np.hypot(*(end - foot)))
+            following = index + 1
+            if reach <= to_end or following >= len(self.mission) or self.mission[following][0] == 'turn':
+                return foot + reach * (end - start) / np.hypot(*(end - start))
+            reach, foot, index = reach - to_end, end, following
+
+    def drive_command(self, target, remaining):
+        """Pure pursuit: the arc through the lookahead point, so turns start before the rover reaches them."""
         self.commanded_speed = min(self.settings['cruise_speed'], float(np.sqrt(
             2.0 * self.settings['max_deceleration'] * remaining)))
-        heading_error = self.heading_error(np.arctan2(direction[1], direction[0]))
+        offset = target - self.estimator.position
+        bearing_error = self.heading_error(np.arctan2(offset[1], offset[0]))
+        curvature = 2.0 * np.sin(bearing_error) / np.hypot(*offset)
         limit = self.settings['max_angular_velocity']
 
         command = Twist()
         command.linear.x = self.commanded_speed
-        command.angular.z = float(np.clip(
-            self.settings['heading_gain'] * heading_error
-            - self.settings['cross_track_gain'] * cross_track, -limit, limit))
+        command.angular.z = float(np.clip(self.commanded_speed * curvature, -limit, limit))
         return command
 
     def halt(self):
@@ -499,11 +518,10 @@ class SurveyNavigator(Node):
         if remaining > self.settings['arrival_tolerance']:
             if self.drive_frame()[1] <= 0.0 and self.step_index + 1 < self.run_end():
                 self.step_index += 1
-            direction, _, cross_track = self.drive_frame()
             to_stop = remaining + self.steps_length(self.run_end(), self.stop_ahead())
             if line_start is not None:
                 to_stop = min(to_stop, line_start)
-            self.command_publisher.publish(self.drive_command(direction, to_stop, cross_track))
+            self.command_publisher.publish(self.drive_command(self.lookahead_point(), to_stop))
             return
 
         # A line flows straight into its headland turn and back; only a spot turn needs a standstill

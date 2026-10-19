@@ -919,3 +919,13 @@ never do. Asked as NTRIP 1.0 the caster replies `ICY 200 OK` with plain RTCM, wh
 already accepts. `scout_navigation/ntrip_proxy.py` listens on 127.0.0.1:2101 and forwards the
 bridge's request without its Ntrip-Version header; `field.launch.py` points the bridge at it. The
 team's script is unchanged and its credentials only pass through.
+
+**Pure pursuit instead of heading plus cross-track feedback.** On the concrete lawn (rover alone,
+RTK fixed, 13.8 m lines, 2 m U-turns) the old law weaved ±0.2–0.6 m on the line, reached 3.0 m past
+the line end for a 2.0 m turn and swung 1.4 m wide, entering line 2 1.4 m off: it only reacted to
+error on the current 0.5 m segment, and the real chassis answers later than Gazebo's. The rover now
+steers along the arc through a point `lookahead_distance` (1.5 m) further along the planned path
+than its foot on it; the path runs on through lines, detours and U-turns up to the next spot turn,
+so turns begin before the rover reaches them. `cross_track_gain` is gone; `heading_gain` is left
+for spot turns. The dashboard takes the status at 10 Hz instead of 5. Gazebo, the same short site:
+both lines and the turn driven, stops at line 2 to wait.
