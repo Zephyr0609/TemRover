@@ -904,3 +904,10 @@ now lives in `config/rover.yaml`, which only `hardware.launch.py` loads. With th
 field the rover does not turn at all in the U (left or right, same ground friction as Royal Park)
 and goes LOST; with carts it also crawls at 0.25 m/s against 0.9. The earlier Royal Park success
 with the same carts does not carry over, so Gazebo's towing is still not a test of the turn.
+
+**RTK stuck in float: the mountpoint.** At the concrete lawn the receiver sat in RTK float for
+minutes with 29–33 satellites and HDOP 0.4. Two causes found: C/N0 medians of only 34–38 dB-Hz
+(a ground plate has since gone under the antenna), and the `GDA2020-RTCM3` mountpoint sends GPS and
+GLONASS only (RTCM 3.1 1004/1012, VRS), so about half the tracked satellites had no corrections.
+VicPos's `RTXNet-RTCM32` is the same GPSnet GDA2020 network with MSM7 for GPS, GLONASS, Galileo,
+BeiDou and QZSS; the account reaches it. `field.launch.py` passes it to the bridge (`ntrip_mount`).

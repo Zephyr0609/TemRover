@@ -32,6 +32,9 @@ def generate_launch_description():
         # The team's LG290P bridge: finds the receiver's port, feeds it NTRIP corrections, serves its NMEA on TCP
         DeclareLaunchArgument('rtk_bridge', default_value=os.path.expanduser('~/ros2_ws/rtk_gps_bridge.py')),
         DeclareLaunchArgument('nmea_port', default_value='12345'),
+        # VicPos network RTK, GDA2020: this mountpoint carries all five constellations (RTCM 3.2 MSM7);
+        # GDA2020-RTCM3 has GPS and GLONASS only, which left the receiver stuck in RTK float
+        DeclareLaunchArgument('ntrip_mount', default_value='RTXNet-RTCM32'),
         DeclareLaunchArgument('lidar_port', default_value='/dev/ttyUSB0'),
 
         include(os.path.join(LAUNCH, 'hardware.launch.py'),
@@ -40,7 +43,8 @@ def generate_launch_description():
         include(os.path.join(LAUNCH, 'dashboard.launch.py'), {'usb_camera': LaunchConfiguration('camera')}),
 
         ExecuteProcess(cmd=['python3', LaunchConfiguration('rtk_bridge'),
-                            '--tcp-port', LaunchConfiguration('nmea_port')],
+                            '--tcp-port', LaunchConfiguration('nmea_port'),
+                            '--mount', LaunchConfiguration('ntrip_mount')],
                        name='rtk_bridge', output='screen', condition=IfCondition(LaunchConfiguration('gnss'))),
         # The bridge needs a moment to find the receiver and open its port before the driver connects
         TimerAction(period=5.0, condition=IfCondition(LaunchConfiguration('gnss')), actions=[

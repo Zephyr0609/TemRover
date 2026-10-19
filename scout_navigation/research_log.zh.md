@@ -1282,3 +1282,8 @@ RTK 改正（GGA 质量 1），所以测线平移 2.6 m 对到单点定位上，
 `config/rover.yaml`，只有 `hardware.launch.py` 加载。挂拖车在平地世界里，车在 U 弯中根本转不过去（左转右转都一样，地面摩擦
 和 Royal Park 相同），判 LOST；挂车直行也只有 0.25 m/s（指令 0.9）。之前 Royal Park 同样拖车跑通不能推广，Gazebo 的拖车
 仿真仍然不能用来检验转弯。
+
+**RTK 一直浮点：挂载点的问题。** 在 concrete lawn，接收机 29–33 颗卫星、HDOP 0.4，却一直停在 RTK float。查到两个原因：
+载噪比中位数只有 34–38 dB-Hz（天线下已经垫了金属底板）；`GDA2020-RTCM3` 挂载点只发 GPS 和 GLONASS（RTCM 3.1 的
+1004/1012，VRS），大约一半在跟踪的卫星没有改正。VicPos 的 `RTXNet-RTCM32` 是同一个 GPSnet GDA2020 网络，发 GPS、GLONASS、
+Galileo、北斗、QZSS 的 MSM7；我们的账号能用。`field.launch.py` 把它传给 RTK 桥（`ntrip_mount`）。
