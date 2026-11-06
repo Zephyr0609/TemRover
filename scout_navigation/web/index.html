@@ -138,7 +138,11 @@ topic('/survey_path', 'nav_msgs/Path').subscribe(m => {
 });
 topic('/driven_route', 'nav_msgs/Path').subscribe(m => {
   state.route = m.poses.map(p => [p.pose.position.x, p.pose.position.y]);
-  if (!trace.replayed) replayRoute(state.route);
+  // Only a towed train has cart tracks to rebuild; wait for the status that says which this is
+  if (!trace.replayed && state.status) {
+    if (towing()) replayRoute(state.route);
+    else trace.replayed = true;
+  }
 });
 topic('/estimated_pose', 'geometry_msgs/PoseStamped', 50).subscribe(m => {
   const q = m.pose.orientation;
@@ -386,7 +390,25 @@ function paddedRange(values, minimumSpan) {
   return [middle - half, middle + half];
 }
 
+const towing = () => state.status && state.status.towed_length > 0;
+
+function drawNote(plot, title, note) {
+  const pc = plot.getContext('2d'), dpr = window.devicePixelRatio || 1, w = plot.clientWidth, h = plot.clientHeight;
+  if (plot.width !== w * dpr || plot.height !== h * dpr) { plot.width = w * dpr; plot.height = h * dpr; }
+  pc.setTransform(dpr, 0, 0, dpr, 0, 0);
+  pc.fillStyle = '#ffffff'; pc.fillRect(0, 0, w, h);
+  pc.textAlign = 'center'; pc.fillStyle = '#262626';
+  pc.font = '600 13px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+  pc.fillText(title, w / 2, 18);
+  pc.font = FONT; pc.fillStyle = '#6b7280'; pc.fillText(note, w / 2, h / 2);
+}
+
 function drawPlots() {
+  if (!towing()) {
+    for (const [id, title] of [['separationPlot', 'Tx–Rx separation'], ['offsetPlot', 'Rover–Tx offset']])
+      drawNote(document.getElementById(id), title, 'No Tx/Rx in tow');
+    return;
+  }
   const separation = trace.samples.map(sample => sample.separation);
   const offset = trace.samples.map(sample => sample.offset);
   const nominal = separation.map(() => STRAIGHT_SEPARATION);
