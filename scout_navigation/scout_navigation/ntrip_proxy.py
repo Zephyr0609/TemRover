@@ -37,6 +37,7 @@ def as_ntrip_1(request):
 
 
 def serve(client, caster_host, caster_port):
+    """Forwards one client's NTRIP request to the caster as NTRIP 1.0 and pipes both ways."""
     request = b''
     while b'\r\n\r\n' not in request:
         data = client.recv(4096)

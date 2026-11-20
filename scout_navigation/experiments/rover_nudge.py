@@ -31,10 +31,12 @@ class StraightRun(Node):
         self.create_subscription(Odometry, 'odom', self.on_odometry, 10)
 
     def on_odometry(self, message):
+        """Stores the distance travelled and the measured speed."""
         self.travel = message.pose.pose.position.x
         self.samples.append(message.twist.twist.linear.x)
 
     def send(self, speed):
+        """Publishes one straight-line /cmd_vel."""
         command = Twist()
         command.linear.x = speed
         self.publisher.publish(command)

@@ -1,3 +1,5 @@
+"""Package build file: installs the Python package, launch files, configs, models, worlds and the web page.
+"""
 from glob import glob
 
 from setuptools import find_packages, setup
@@ -12,6 +14,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        # Everything the launch files load at run time is installed into the package's share folder
         ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
         ('share/' + package_name + '/config', glob('config/*')),
         ('share/' + package_name + '/description', glob('description/*.xacro')),
@@ -23,7 +26,7 @@ setup(
     zip_safe=True,
     maintainer='sumitjadhav',
     maintainer_email='sumitsantosh@student.unimelb.edu.au',
-    description='TODO: Package description',
+    description='Autonomous survey-line navigation for the TEMRover: Scout 2.0 towing the EM Loupe Tx and Rx carts',
     license='TODO: License declaration',
     extras_require={
         'test': [
@@ -31,6 +34,7 @@ setup(
         ],
     },
     entry_points={
+        # Nodes started with `ros2 run scout_navigation <name>`
         'console_scripts': [
             'survey_navigator = scout_navigation.survey_navigator:main',
             'scout_can_bridge = scout_navigation.scout_can_bridge:main',

@@ -1,3 +1,7 @@
+"""LiDAR processing: from a raw scan to obstacle points on the map.
+
+Drops ground and slope returns, keeps a forward cone, and converts between rover, map and line frames.
+"""
 import numpy as np
 
 

@@ -20,10 +20,12 @@ class SpinTest(Node):
         self.publisher = self.create_publisher(Twist, 'cmd_vel', 10)
 
     def on_imu(self, message):
+        """Stores heading and yaw rate from the IMU."""
         heading = 2.0 * np.arctan2(message.orientation.z, message.orientation.w)
         self.samples.append((heading, message.angular_velocity.z))
 
     def run(self):
+        """Spins at the commanded rate while sampling, then stops."""
         command = Twist()
         command.angular.z = COMMANDED_RATE
         for _ in range(SAMPLE_COUNT):

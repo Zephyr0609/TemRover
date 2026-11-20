@@ -8,6 +8,7 @@ FONT = "font-family='Helvetica, Arial, sans-serif' font-size='13'"
 
 
 def svg(width, height, body):
+    """Wraps the body in an SVG document with the arrow marker defined."""
     return (f"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {width} {height}' "
             f"width='{width}' height='{height}' {FONT}>\n"
             f"<defs><marker id='ar' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='7' "
@@ -16,21 +17,25 @@ def svg(width, height, body):
 
 
 def text(x, y, s, fill=INK, anchor='middle', size=13, weight='normal'):
+    """One SVG text element."""
     s = s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
     return (f"<text x='{x}' y='{y}' text-anchor='{anchor}' fill='{fill}' font-size='{size}' "
             f"font-weight='{weight}'>{s}</text>")
 
 
 def arrow(x1, y1, x2, y2, both=False, stroke=INK, width=1.6):
+    """One SVG arrow."""
     ends = "marker-start='url(#ar)' marker-end='url(#ar)'" if both else "marker-end='url(#ar)'"
     return f"<line x1='{x1}' y1='{y1}' x2='{x2}' y2='{y2}' stroke='{stroke}' stroke-width='{width}' {ends}/>"
 
 
 def box(x, y, w, h, fill=BOX, stroke=INK):
+    """One SVG rounded box."""
     return f"<rect x='{x}' y='{y}' width='{w}' height='{h}' rx='3' fill='{fill}' stroke='{stroke}' stroke-width='1.4'/>"
 
 
 def overview():
+    """Figure 1: from LiDAR scan to detour, as a block diagram."""
     b = [
         box(30, 112, 130, 66), text(95, 140, 'LiDAR scan', weight='bold'), text(95, 160, '720 beams · 360°', MUTED, size=12),
         arrow(160, 145, 196, 145),
@@ -54,6 +59,7 @@ def overview():
 
 
 def perception():
+    """Figure 2: how a slope is told apart from an object."""
     def panel(ox, title, verdict, arc, arc_w, label, ang, result):
         cx = ox + 150
         return [
@@ -77,6 +83,7 @@ def perception():
 
 
 def corridor():
+    """Figure 3: the corridor the rover sweeps along a survey line."""
     b = [
         f"<rect x='70' y='98' width='860' height='64' fill='{SOFT}'/>",
         f"<line x1='70' y1='130' x2='930' y2='130' stroke='{ACCENT}' stroke-width='2' stroke-dasharray='8 5'/>",
@@ -92,6 +99,7 @@ def corridor():
 
 
 def detour():
+    """Figure 4: the detour path around an obstacle."""
     b = [
         f"<line x1='60' y1='215' x2='950' y2='215' stroke='{ACCENT}' stroke-width='1.6' stroke-dasharray='8 5'/>",
         text(900, 236, 'survey line', ACCENT, size=12),

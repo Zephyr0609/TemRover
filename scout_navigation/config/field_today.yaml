@@ -1,3 +1,4 @@
+# Site file template for a short field test: copy it, then set the start corner, bearing and size.
 /**:
   ros__parameters:
     # Start corner of line 1 (RTK fix at that spot: ros2 topic echo /gps/fix)

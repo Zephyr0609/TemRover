@@ -1,3 +1,4 @@
+# Real rover only (loaded by hardware.launch.py): how its sensors are mounted.
 /**:
   ros__parameters:
     # Mounting of the real rover's sensors; only hardware.launch.py loads this, so Gazebo keeps its own

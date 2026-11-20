@@ -1,3 +1,7 @@
+"""Builds the mission from the grid size: survey lines joined by spot turns or U-turns.
+
+Works in a grid frame (x along line 1, y across the lines) and then places the result on the map.
+"""
 import numpy as np
 
 

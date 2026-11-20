@@ -19,6 +19,7 @@ def parameters(site=None):
 
 
 def load_grid(site=None):
+    """The grid parameters as keyword arguments for generate_survey_mission."""
     values = parameters(site)
     return {name: values[key] for name, key in GRID_KEYS.items()}
 

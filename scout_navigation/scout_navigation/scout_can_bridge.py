@@ -1,3 +1,7 @@
+"""CAN bridge for the real rover: /cmd_vel to Scout 2.0 CAN frames, chassis feedback to /odom.
+
+Stops the rover if no command arrives for command_timeout seconds.
+"""
 import socket
 import struct
 
@@ -7,17 +11,21 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 
+# Scout 2.0 CAN frame identifiers (AgileX protocol)
 MOTION_COMMAND_ID = 0x111
 SYSTEM_STATUS_ID = 0x211
 MOTION_FEEDBACK_ID = 0x221
 MODE_COMMAND_ID = 0x421
 
+# Chassis control modes reported in the system status frame
 STANDBY_MODE = 0x00
 CAN_COMMAND_MODE = 0x01
 MODE_NAMES = {0x00: 'standby', 0x01: 'CAN command', 0x02: 'serial', 0x03: 'remote control'}
 
+# SocketCAN frame layout: identifier, data length, padding, 8 data bytes
 FRAME_FORMAT = '=IB3x8s'
 FRAME_SIZE = struct.calcsize(FRAME_FORMAT)
+# Largest command the motion frame accepts: 1500 mm/s and 1500 mrad/s
 COMMAND_LIMIT = 1500
 
 
@@ -48,6 +56,7 @@ class ScoutCanBridge(Node):
         self.create_timer(self.get_parameter('poll_period').value, self.poll_feedback)
 
     def on_command(self, message):
+        """Stores the latest /cmd_vel in the units of the CAN frame (mm/s, mrad/s)."""
         self.linear_command = int(round(message.linear.x * 1000.0))
         self.angular_command = int(round(message.angular.z * 1000.0))
         self.last_command_time = self.get_clock().now()
@@ -58,6 +67,7 @@ class ScoutCanBridge(Node):
         return silence > self.get_parameter('command_timeout').value
 
     def send_frame(self, identifier, payload):
+        """Writes one CAN frame."""
         self.socket.send(struct.pack(FRAME_FORMAT, identifier, len(payload), payload))
 
     def send_command(self):
@@ -75,6 +85,7 @@ class ScoutCanBridge(Node):
         self.send_frame(MOTION_COMMAND_ID, payload)
 
     def poll_feedback(self):
+        """Reads every waiting frame: status frames give the mode, motion frames give speed."""
         while True:
             frame = self.read_frame()
             if frame is None:
@@ -87,6 +98,7 @@ class ScoutCanBridge(Node):
                 self.publish_odometry(linear / 1000.0, angular / 1000.0)
 
     def update_mode(self, mode):
+        """Remembers the chassis control mode and logs a change."""
         if mode == self.control_mode:
             return
         self.control_mode = mode
@@ -112,6 +124,7 @@ class ScoutCanBridge(Node):
         self.odometry_publisher.publish(message)
 
     def read_frame(self):
+        """One received frame as (identifier, payload), or None when nothing is waiting."""
         try:
             raw = self.socket.recv(FRAME_SIZE)
         except BlockingIOError:

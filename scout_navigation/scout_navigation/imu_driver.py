@@ -13,6 +13,7 @@ GRAVITY = 9.80665
 
 
 class ImuDriver(Node):
+    """Reads the ICM-20948 at imu_rate and publishes imu/data with the gyro bias removed."""
     def __init__(self):
         super().__init__('imu_driver')
         self.declare_parameter('imu_rate', 100.0)
@@ -31,6 +32,7 @@ class ImuDriver(Node):
         self.get_logger().info(f"Hold still: measuring gyro bias for {self.settings['imu_bias_duration']:.0f} s")
 
     def publish_imu(self):
+        """One sensor read: collects bias samples first, then publishes."""
         accel, gyro = self.imu.read_accelerometer_gyro_data()
         gyro = np.radians(gyro)
 

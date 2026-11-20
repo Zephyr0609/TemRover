@@ -22,6 +22,7 @@ class VideoRecorder(Node):
         self.create_subscription(Image, 'survey_camera', self.on_image, qos_profile_sensor_data)
 
     def on_image(self, message):
+        """Appends one camera frame to the video file."""
         frame = np.frombuffer(message.data, dtype=np.uint8).reshape(message.height, message.width, 3)
         if self.writer is None:
             self.writer = cv2.VideoWriter(self.filename, cv2.VideoWriter_fourcc(*'mp4v'),

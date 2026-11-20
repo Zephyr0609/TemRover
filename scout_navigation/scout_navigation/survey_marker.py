@@ -12,11 +12,13 @@ END_COLOUR = '0.85 0.30 0.10'
 
 
 def material(colour):
+    """SDF material block of one colour."""
     return (f'<material><ambient>{colour} 1</ambient><diffuse>{colour} 1</diffuse>'
             f'<emissive>{colour} 1</emissive></material>')
 
 
 def ribbon(name, start, end):
+    """A thin flat box along one survey line."""
     centre, offset = (start + end) / 2.0, end - start
     heading = np.arctan2(offset[1], offset[0])
     return f'''    <link name="{name}">
@@ -30,6 +32,7 @@ def ribbon(name, start, end):
 
 
 def disc(name, point, colour):
+    """A flat disc marking one end of a survey line."""
     return f'''    <link name="{name}">
       <pose>{point[0]:.3f} {point[1]:.3f} {RIBBON_HEIGHT / 2:.3f} 0 0 0</pose>
       <visual name="visual">

@@ -1,3 +1,5 @@
+# Default parameters for the navigator and the rover drivers. Site files override the survey grid;
+# payload.yaml adds the Tx and Rx carts; rover.yaml adds the real rover's sensor mounting.
 /**:
   ros__parameters:
     # Survey area — Royal Park test grid from the 12/08 minutes
@@ -5,26 +7,32 @@
     origin_longitude: 144.9614
     # Direction of line 1, radians anticlockwise from east; the rover starts facing this way
     grid_bearing: 0.0
+    # grid_width: across the survey lines; grid_length: along them; lines = width / spacing + 1
     grid_width: 50.0
     grid_length: 50.0
+    # Negative spacing puts line 2 to the right of line 1 instead of the left
     line_spacing: 5.0
     # 0: spot turns at each line end, for the rover alone; the towed train sets a driven U-turn (payload.yaml)
     turn_radius: 0.0
+    # Extra distance driven past each end of a survey line (m)
     headland: 0.0
+    # U-turns are followed as straight segments of this length (m)
     turn_segment_length: 0.5
 
     # 0.9 m/s is the payload survey speed; the Scout tops out at 1.5 m/s but the towed train oscillates there
     cruise_speed: 0.9
+    # Braking used to slow down before a stop (m/s^2)
     max_deceleration: 6.9
     # CAN motion frame caps both channels at +/-1500 units
     max_angular_velocity: 1.5
+    # Spot turns: rate limit (rad/s), gain on the heading error, damping on the yaw rate
     rotation_rate: 1.0
-
     heading_gain: 1.5
+    rotation_damping: 0.6
     # Pure pursuit steers for the point this far ahead on the path: longer is smoother, shorter tracks tighter
     lookahead_distance: 1.5
-    rotation_damping: 0.6
 
+    # A run ends within this distance of its end (m); the rover counts as stopped below this speed (m/s)
     arrival_tolerance: 0.05
     halt_speed: 0.05
     # Stops rather than driving on when the rover loses the line; it cannot re-acquire yet
@@ -43,10 +51,12 @@
     maximum_object_angle: 1.57
     # Scout 2.0 body 0.925 x 0.70 m
     rover_half_width: 0.35
+    # The rover stops when an obstacle on its path is closer than this (m)
     obstacle_standoff: 1.0
     # Planning margin = clearance + obstacle_hysteresis; the stop decision keeps its own, wider hysteresis
     obstacle_hysteresis: 0.2
     obstacle_clearance: 0.3
+    # A stopped rover moves again only once the obstacle is this much further away (m)
     hold_hysteresis: 0.5
     # Ramp length follows from the lateral acceleration the towed carts tolerate at cruise speed
     detour_lookahead: 10.0
@@ -60,13 +70,14 @@
     # EKF process noise per control step, east/north and yaw
     position_process_noise: 0.01
     yaw_process_noise: 0.01
-    # ZED-F9P RTK horizontal accuracy
+    # RTK fixed horizontal accuracy (m); use about 0.8 without RTK corrections
     gnss_noise: 0.02
     # Antenna sits 0.30 m behind base_link (URDF navsat_link), so it swings when the rover yaws
     gnss_offset: -0.30
     # No alignment run: the rover is placed facing along line 1 to within about 20 deg
     initial_heading_noise: 0.35
 
+    # SocketCAN interface of the Scout 2.0 chassis
     can_interface: can0
 
     # ICM-20948 driver: rover stands still for imu_bias_duration at power-up; flip the sign if a left turn reads negative

@@ -32,6 +32,7 @@ BYSTANDER = next((item for item in LAYOUT if item.get('bystander')), None)
 
 
 def remove_request(name):
+    """Command that removes a model from the running Gazebo world."""
     return ['ign', 'service', '-s', '/world/survey_field/remove',
             '--reqtype', 'ignition.msgs.Entity', '--reptype', 'ignition.msgs.Boolean',
             '--timeout', '2000', '--req', f'name: "{name}" type: MODEL']
@@ -65,9 +66,11 @@ class DetourRecorder(Node):
             depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
 
     def seconds(self):
+        """Current ROS time in seconds."""
         return self.get_clock().now().nanoseconds * 1e-9
 
     def on_poses(self, message):
+        """Stores the rover's true pose from Gazebo."""
         for transform in message.transforms:
             if transform.child_frame_id == MODEL_NAME:
                 rotation = transform.transform.rotation
@@ -91,14 +94,17 @@ class DetourRecorder(Node):
             print(f"bystander {BYSTANDER['name']} removed at {self.bystander_left:.1f} s sim time")
 
     def on_command(self, message):
+        """Stores each /cmd_vel."""
         self.commands.append((self.seconds(), message.linear.x, message.angular.z))
 
     def on_estimate(self, message):
+        """Stores the navigator's estimated pose."""
         rotation = message.pose.orientation
         self.estimates.append((self.seconds(), message.pose.position.x, message.pose.position.y,
                                2.0 * np.arctan2(rotation.z, rotation.w)))
 
     def on_path(self, message):
+        """Stores the planned survey path."""
         self.planned = [(pose.pose.position.x, pose.pose.position.y) for pose in message.poses]
 
 
@@ -110,6 +116,7 @@ def heading_error(track, estimates):
 
 
 def report(recorder, filename):
+    """Scores the run and saves the figure: track, clearance, commands, heading error."""
     track = np.array(recorder.track)
     commands = np.array(recorder.commands)
     start = track[0, 0]

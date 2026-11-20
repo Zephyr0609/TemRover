@@ -1,3 +1,7 @@
+"""Simulation: Gazebo world, the rover model (with or without carts), ROS bridges and the navigator.
+
+Used through sim.launch.py, which adds the dashboard.
+"""
 import os
 import subprocess
 import tempfile
@@ -15,6 +19,7 @@ from launch_ros.parameter_descriptions import ParameterValue
 from scout_navigation.survey_grid import survey_lines
 from scout_navigation.survey_marker import survey_marker_sdf
 
+# Gazebo topics exposed to ROS; ] is ROS -> Gazebo, [ is Gazebo -> ROS
 BRIDGED_TOPICS = [
     '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
     '/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
@@ -89,6 +94,7 @@ def spawn_survey_lines(context):
 
 
 def generate_launch_description():
+    """Launch arguments, then world, rover, survey line markers, obstacles, bridge and navigator."""
     description = os.path.join(get_package_share_directory('scout_description'), 'urdf',
                                'scout_v2.xacro')
     extras = os.path.join(PACKAGE_SHARE, 'description', 'temrover_extras.xacro')
@@ -128,8 +134,10 @@ def generate_launch_description():
         DeclareLaunchArgument('gz_args', default_value='-r -v 2',
                               description='Extra Gazebo arguments, add -s to run headless'),
 
+        # Gazebo itself, with the world placed at the site's GNSS origin
         OpaqueFunction(function=render_world),
 
+        # Rover model: published as robot_description, then spawned at the origin
         Node(package='robot_state_publisher', executable='robot_state_publisher',
              output='screen', parameters=[{'robot_description': robot_description,
                                            'use_sim_time': True}]),
@@ -142,11 +150,13 @@ def generate_launch_description():
 
         *spawn_obstacles(),
 
+        # Sensor and command topics between Gazebo and ROS
         Node(package='ros_gz_bridge', executable='parameter_bridge', output='screen',
              arguments=BRIDGED_TOPICS + ['--ros-args', '-r',
                        '/world/survey_field/dynamic_pose/info:=/link_poses'],
              parameters=[{'use_sim_time': True}]),
 
+        # The navigator, on simulated time, starting without waiting for the dashboard
         Node(package='scout_navigation', executable='survey_navigator', name='survey_navigator',
              output='screen', emulate_tty=True,
              parameters=[SURVEY, payload, LaunchConfiguration('site'),

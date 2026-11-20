@@ -1,3 +1,5 @@
+"""Conversion between GNSS latitude/longitude and local east/north metres.
+"""
 import numpy as np
 
 WGS84_SEMI_MAJOR_AXIS = 6378137.0
@@ -22,11 +24,13 @@ class LocalTangentPlane:
             WGS84_SEMI_MAJOR_AXIS * (1.0 - WGS84_ECCENTRICITY_SQUARED) / curvature ** 1.5)
 
     def to_local(self, latitude, longitude):
+        """Latitude and longitude (deg) to east and north metres from the origin."""
         east = (np.asarray(longitude) - self.origin_longitude) * self.east_scale
         north = (np.asarray(latitude) - self.origin_latitude) * self.north_scale
         return np.stack([east, north], axis=-1)
 
     def to_geodetic(self, local_position):
+        """East and north metres from the origin back to latitude and longitude (deg)."""
         local_position = np.asarray(local_position)
         longitude = self.origin_longitude + local_position[..., 0] / self.east_scale
         latitude = self.origin_latitude + local_position[..., 1] / self.north_scale
@@ -34,4 +38,5 @@ class LocalTangentPlane:
 
 
 def wrap_to_pi(angle):
+    """Wraps an angle into [-pi, pi)."""
     return (angle + np.pi) % (2.0 * np.pi) - np.pi

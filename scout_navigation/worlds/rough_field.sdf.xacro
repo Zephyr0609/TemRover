@@ -1,4 +1,5 @@
 <?xml version="1.0"?>
+<!-- Test field with uneven ground (heightmap from experiments/make_terrain.py). -->
 <sdf version="1.9" xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:arg name="latitude" default="-37.7963" />
   <xacro:arg name="longitude" default="144.9614" />

@@ -15,6 +15,7 @@ ROVER = os.path.join(CONFIG, 'rover.yaml')
 
 
 def generate_launch_description():
+    """Navigator, CAN bridge and, unless imu:=false, the IMU driver."""
     return LaunchDescription([
         DeclareLaunchArgument('site', default_value=SURVEY,
                               description='Site parameters layered over survey.yaml, e.g. south_lawn.yaml'),

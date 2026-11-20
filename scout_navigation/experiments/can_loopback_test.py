@@ -27,15 +27,18 @@ class Probe(Node):
         self.create_subscription(Odometry, 'odom', self.on_odometry, 10)
 
     def on_odometry(self, message):
+        """Stores the speed and yaw rate the bridge published."""
         self.odometry.append((message.twist.twist.linear.x, message.twist.twist.angular.z))
 
     def send(self, linear, angular):
+        """Publishes one /cmd_vel."""
         command = Twist()
         command.linear.x, command.angular.z = linear, angular
         self.publisher.publish(command)
 
 
 def open_monitor():
+    """A second socket on the CAN interface, to see what the bridge sends."""
     monitor = socket.socket(socket.AF_CAN, socket.SOCK_RAW, socket.CAN_RAW)
     monitor.bind((INTERFACE,))
     monitor.setblocking(False)
@@ -43,6 +46,7 @@ def open_monitor():
 
 
 def drain(monitor, identifier):
+    """Payloads of every waiting frame with the given identifier."""
     payloads = []
     while True:
         try:

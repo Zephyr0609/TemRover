@@ -16,11 +16,13 @@ CONFIG = os.path.join(PACKAGE_SHARE, 'config')
 
 
 def include(path, arguments):
+    """Includes another launch file with the given arguments."""
     return IncludeLaunchDescription(PythonLaunchDescriptionSource(path),
                                     launch_arguments=arguments.items())
 
 
 def generate_launch_description():
+    """Navigator, CAN bridge and IMU (hardware.launch.py), dashboard, RTK GNSS and LiDAR."""
     return LaunchDescription([
         DeclareLaunchArgument('site', default_value=os.path.join(CONFIG, 'survey.yaml'),
                               description='Site parameters layered over survey.yaml'),

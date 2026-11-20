@@ -10,12 +10,14 @@ from launch.substitutions import LaunchConfiguration
 PACKAGE_SHARE = get_package_share_directory('scout_navigation')
 LAUNCH = os.path.join(PACKAGE_SHARE, 'launch')
 
+# Arguments passed on to gazebo.launch.py, with their defaults
 FORWARDED = {'site': os.path.join(PACKAGE_SHARE, 'config', 'survey.yaml'), 'obstacles': 'true',
              'bystander': 'false', 'carts': 'false', 'gz_args': '-r -v 2',
              'world': 'flat_field.sdf.xacro', 'show_path': 'true', 'trees': 'false'}
 
 
 def generate_launch_description():
+    """gazebo.launch.py plus dashboard.launch.py, forwarding the arguments in FORWARDED."""
     return LaunchDescription([
         *(DeclareLaunchArgument(name, default_value=value) for name, value in FORWARDED.items()),
 

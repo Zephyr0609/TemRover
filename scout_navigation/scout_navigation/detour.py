@@ -1,3 +1,7 @@
+"""Detour geometry: the sideways path that takes the rover around an obstacle and back to the line.
+
+Pure functions; the navigator decides when to call them and replaces the line's mission steps.
+"""
 import numpy as np
 
 

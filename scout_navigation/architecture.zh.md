@@ -1,6 +1,6 @@
 # TEMRover 导航系统：每个文件干什么、怎么串起来
 
-配合 `research_log.zh.md`（实验记录）一起看。
+配合 `research_log.zh.md`（实验记录）一起看。英文版说明（含安装和启动步骤）见仓库根目录的 `README.md`。
 
 ## 一、四个 ROS 2 概念
 
@@ -42,7 +42,7 @@ flowchart LR
 
 | 文件 | 干什么 |
 |---|---|
-| `survey_navigator.py` | 大脑，唯一发 `/cmd_vel` 的节点。对准、跑测线、转弯、避障、暂停、急停，以及给监控页发状态 |
+| `survey_navigator.py` | 大脑，唯一发 `/cmd_vel` 的节点。用 pure pursuit 跟测线和弯道，避障、暂停、急停，每条线起点等操作员按 Start，并给监控页发状态 |
 | `pose_estimator.py` | EKF：轮速 + 偏航率预测，GNSS 位置和航迹角修正，含天线杆臂 |
 | `obstacle_monitor.py` | 激光数据处理：去地面、去坡面、只留前方 60° 扇区、转到世界坐标 |
 | `detour.py` | 绕行几何：选边、只看最近一组障碍、按侧向加速度算坡道长度、绕完马上回线 |
@@ -51,6 +51,7 @@ flowchart LR
 | `geodesy.py` | 经纬度 ↔ 东北坐标（米） |
 | `scout_can_bridge.py` | `/cmd_vel` ↔ Scout 2.0 CAN 帧；0.5 s 收不到指令自动停车 |
 | `imu_driver.py` | 读 ICM-20948（改自 ej5962/Capstone），开机静止 3 s 测陀螺零偏后发 `imu/data` |
+| `ntrip_proxy.py` | 真车用：夹在 RTK 桥和改正服务之间，把请求改成 NTRIP 1.0，改正数据才不会被打乱 |
 
 **状态机**（`survey_navigator.py`）
 
@@ -77,6 +78,9 @@ flowchart LR
 | `field_today.yaml` | 短测量现场模板：起点坐标、方向、线数、雷达朝后 |
 | `south_lawn.yaml` | 南草坪 30 × 30 m 测区（MGA55 测量点） |
 | `royal_park.yaml` | 皇家公园 50 × 50 m 固定测区，起点 W00，GDA2020 |
+| `rover.yaml` | 只有真车加载：传感器安装方式（雷达朝后） |
+| `concrete_lawn.yaml` | Concrete Lawn 两条 23.8 m 测线 |
+| `field_2026_09_21.yaml` | 9 月 21 日外场那条线，含没有 RTK 时的参数 |
 | `payload.yaml` | 拖车几何（PVC 连杆中点铰接）、U 型弯半径 2.5 m（线距一半，不外甩）、线两头多开 12.5 m（弯最远点离终点 15 m） |
 | `obstacles.yaml` | 仿真里的 7 个测试障碍物 |
 | `survey.rviz` | rviz 视图 |

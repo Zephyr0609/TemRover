@@ -53,6 +53,7 @@ def tow(path):
 
 
 def assess(radius):
+    """Largest linkage angles and the run past the line end needed, for one turn radius."""
     poses = tow(rover_path(radius))
     hitch = [np.abs(np.angle(np.exp(1j * (a[:, 2] - b[:, 2])))).max() for a, b in zip(poses[:-1], poses[1:])]
     tx = poses[1]

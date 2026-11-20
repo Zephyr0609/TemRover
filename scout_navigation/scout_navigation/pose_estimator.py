@@ -1,10 +1,14 @@
+"""Pose estimator: an extended Kalman filter for the rover's position and heading.
+
+Predicts with wheel speed and yaw rate; corrects with GNSS position and GNSS direction of travel.
+"""
 import numpy as np
 
 from .geodesy import wrap_to_pi
 
 
 class PoseEstimator:
-    """EKF over base_link east, north and yaw, propagated by wheel speed and IMU yaw rate."""
+    """State is [east, north, heading] of the rover centre (base_link), in metres and radians."""
 
     def __init__(self, position_process_noise, yaw_process_noise, gnss_noise, course_noise,
                  minimum_course_speed, antenna_offset, initial_heading_noise):
@@ -20,10 +24,12 @@ class PoseEstimator:
 
     @property
     def position(self):
+        """East and north of the rover centre (m)."""
         return self.state[:2]
 
     @property
     def heading(self):
+        """Heading in radians anticlockwise from east."""
         return self.state[2]
 
     def lever_arm(self):
@@ -32,9 +38,11 @@ class PoseEstimator:
         return self.antenna_offset * np.array([np.cos(heading), np.sin(heading)])
 
     def antenna_to_base(self, antenna_position):
+        """Rover centre position for a given antenna position."""
         return antenna_position - self.lever_arm()
 
     def predict(self, speed, yaw_rate, time_step):
+        """Moves the state forward by one time step using speed and yaw rate."""
         heading = self.state[2]
         self.state += time_step * np.array([speed * np.cos(heading), speed * np.sin(heading), yaw_rate])
         self.state[2] = wrap_to_pi(self.state[2])
@@ -45,6 +53,7 @@ class PoseEstimator:
         self.covariance = jacobian @ self.covariance @ jacobian.T + self.process_noise * time_step
 
     def _correct(self, innovation, observation_matrix, noise):
+        """Standard Kalman correction of state and covariance for one measurement."""
         innovation_covariance = observation_matrix @ self.covariance @ observation_matrix.T + noise
         gain = self.covariance @ observation_matrix.T @ np.linalg.inv(innovation_covariance)
         self.state = self.state + gain @ innovation

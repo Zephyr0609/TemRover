@@ -15,10 +15,12 @@ OFF_LINE = 0.2
 
 
 def cross_track(track):
+    """Distance of each track point from its nearest survey line."""
     return track[:, 2] - np.round(track[:, 2] / LINE_SPACING) * LINE_SPACING
 
 
 def on_lines(track):
+    """True for track points on a survey line, away from the turns."""
     return (track[:, 1] > 1.0) & (track[:, 1] < LINE_LENGTH - 1.0)
 
 
@@ -31,6 +33,7 @@ def score(track):
 
 
 def draw_obstacles(axis):
+    """Draws the test obstacles on the plot."""
     for item in load_obstacles():
         (x, y, _), (half_x, half_y) = item['pose'], item['half_size']
         shape = (plt.Circle((x, y), half_x, color='C3', alpha=0.7) if half_x == half_y

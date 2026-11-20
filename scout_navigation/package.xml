@@ -3,7 +3,7 @@
 <package format="3">
   <name>scout_navigation</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Autonomous survey-line navigation for the TEMRover: Scout 2.0 towing the EM Loupe Tx and Rx carts</description>
   <maintainer email="sumitsantosh@student.unimelb.edu.au">sumitjadhav</maintainer>
   <license>TODO: License declaration</license>
 

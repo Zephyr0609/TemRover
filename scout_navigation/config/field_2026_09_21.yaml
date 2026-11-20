@@ -1,7 +1,8 @@
+# Site file: the single survey line driven on 21 Sep 2026, with the settings used without RTK.
 /**:
   ros__parameters:
     # The line surveyed on 21 Sep. Its start corner is MGA2020 zone 55 E 320451.662 N 5814589.031,
-    # -37.79844180, 144.96064559 (experiments/mga_to_geographic.py). With no corrections the
+    # -37.79844180, 144.96064559. With no corrections the
     # receiver read 2.6 m northeast of it, so the line is translated onto what the receiver said;
     # bearing and length are untouched, so the far end moves with it.
     origin_latitude: -37.79843457

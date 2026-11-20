@@ -20,6 +20,7 @@ OBSTACLES = [(12.0, 0.0, 0.30), (26.0, 1.2, 0.50)]
 
 
 class BenchScan(Node):
+    """Publishes a fake scan of the OBSTACLES as seen from the estimated pose."""
     def __init__(self):
         super().__init__('bench_scan')
         self.pose = None
@@ -29,6 +30,7 @@ class BenchScan(Node):
         self.create_timer(SCAN_PERIOD, self.publish_scan)
 
     def on_pose(self, message):
+        """Keeps the latest estimated pose as (x, y, heading)."""
         q = message.pose.orientation
         self.pose = (message.pose.position.x, message.pose.position.y,
                      2.0 * np.arctan2(q.z, q.w))
@@ -54,6 +56,7 @@ class BenchScan(Node):
         return best
 
     def publish_scan(self):
+        """Publishes one LaserScan with the ray-cast ranges."""
         if self.pose is None:
             return
         message = LaserScan()

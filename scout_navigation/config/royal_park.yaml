@@ -1,3 +1,4 @@
+# Site file: Royal Park, 50 x 50 m grid (11 survey lines).
 /**:
   ros__parameters:
     # Royal Park permanent EM Loupe grid, GDA2020 / MGA55 (royal_park/b_Grid_Coordinates); line 1 starts at W00

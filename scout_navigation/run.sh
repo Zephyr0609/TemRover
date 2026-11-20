@@ -2,7 +2,7 @@
 # One command per experiment.
 #   ./run.sh field [site:=field_today.yaml] [imu:=false] [lidar_port:=/dev/ttyUSB1] ...
 #   ./run.sh sim   [site:=south_lawn.yaml] [gz_args:='-r -s -v 2'] ...
-# A bare site file name is looked up in the package's config folder.
+# A bare site or payload file name is looked up in the package's config folder.
 set -e
 source /opt/ros/humble/setup.bash
 source "${ROS_WS:-$HOME/ros2_ws}/install/setup.bash"
@@ -12,8 +12,9 @@ mode="$1"
 shift || true
 arguments=()
 for argument in "$@"; do
-    if [[ $argument == site:=* && $argument != */* ]]; then
-        argument="site:=$CONFIG/${argument#site:=}"
+    # site:=name.yaml and payload:=name.yaml are looked up in the config folder
+    if [[ $argument =~ ^(site|payload):=[^/]+$ ]]; then
+        argument="${argument%%:=*}:=$CONFIG/${argument#*:=}"
     fi
     arguments+=("$argument")
 done

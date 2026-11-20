@@ -44,6 +44,7 @@ GROUND, UNCLASSIFIED = 2, 0
 
 
 def grid_points():
+    """Surveyed grid points by name, as MGA easting and northing."""
     rows = np.genfromtxt(GRID, delimiter=',', names=True, dtype=None, encoding='utf-8')
     return {row['PointID']: np.array([row['Easting'], row['Northing']]) for row in rows}
 
@@ -68,6 +69,7 @@ def surface(east, north, values, bounds, cell, statistic):
 
 
 def node_coordinates(bounds, cell):
+    """Easting and northing of the cell centres of a regular grid over the bounds."""
     (west, south), (east_edge, north_edge) = bounds
     east = west + cell * (np.arange(int(round((east_edge - west) / cell))) + 0.5)
     north = south + cell * (np.arange(int(round((north_edge - south) / cell))) + 0.5)
@@ -205,6 +207,7 @@ def write_shells(path, keep, tops, base, ground, bounds, plane):
 
 
 def world(trunks, share):
+    """The world file text, with one link per tree trunk."""
     trunk_links = ''.join(f'''
       <link name="trunk_{index}">
         <pose>{e:.2f} {n:.2f} {z + top / 2:.2f} 0 0 0</pose>
